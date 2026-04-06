@@ -40,11 +40,18 @@ class SportFaceView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
+        var prevTheme = mTheme;
         var theme = Properties.getValue("bg_theme");
         if (theme != null) { mTheme = theme as Number; }
         var ts = Properties.getValue("time_style"); if (ts != null) { mTimeStyle = ts as Number; }
         var tl = Properties.getValue("top_left");   if (tl != null) { mTopLeft = tl as Number; }
         var tr = Properties.getValue("top_right");  if (tr != null) { mTopRight = tr as Number; }
+        // Theme gewechselt → anderen Background nachladen
+        if (mTheme != prevTheme) {
+            mBgLoaded = false;
+            mBgBlack  = null;
+            mBgLight  = null;
+        }
     }
 
     function getThemeColors() as Dictionary {
@@ -72,18 +79,16 @@ class SportFaceView extends WatchUi.WatchFace {
         var cx = w / 2;
         var cy = dh / 2;
 
-        // Hintergrund-Bilder nur einmal laden (gerätespezifisch via monkey.jungle)
-        // Fenix 6S (w=240): übersprungen — zu wenig Heap
-        // Fenix 6  (w=260): nur laden wenn freier Heap >= 180KB (fenix7/7pro haben deutlich mehr)
+        // Nur den aktiven Theme-Background laden (spart ~50% Heap vs. beide laden)
+        // Fenix 6S (w=240): übersprungen — zu wenig Heap für Bitmap
         if (!mBgLoaded) {
             mBgLoaded = true;
-            var loadBg = (w > 260);
-            if (!loadBg && w == 260) {
-                try { loadBg = (System.getSystemStats().freeMemory >= 180000); } catch (ex) {}
-            }
-            if (loadBg) {
-                try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
-                try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
+            if (w > 240) {
+                if (mTheme == 1) {
+                    try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
+                } else {
+                    try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
+                }
             }
         }
         var useLarge = (w >= 390);
