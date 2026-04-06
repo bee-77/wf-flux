@@ -8,6 +8,7 @@ base.resourcePath = resources
 
 # ── 240px Screens ────────────────────────────────────────────────────────────
 fenix6s.resourcePath         = resources;resources-40;resources-bg-240
+fenix6spro.resourcePath      = resources;resources-40;resources-bg-240
 fenix7s.resourcePath         = resources;resources-60;resources-bg-240
 fenix7spro.resourcePath      = resources;resources-60;resources-bg-240
 fr255s.resourcePath          = resources;resources-60;resources-bg-240

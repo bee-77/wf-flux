@@ -79,16 +79,13 @@ class SportFaceView extends WatchUi.WatchFace {
         var cx = w / 2;
         var cy = dh / 2;
 
-        // Nur den aktiven Theme-Background laden (spart ~50% Heap vs. beide laden)
-        // Fenix 6S (w=240): übersprungen — zu wenig Heap für Bitmap
+        // Nur den aktiven Theme-Background laden (gerätespezifisch via monkey.jungle)
         if (!mBgLoaded) {
             mBgLoaded = true;
-            if (w > 240) {
-                if (mTheme == 1) {
-                    try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
-                } else {
-                    try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
-                }
+            if (mTheme == 1) {
+                try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
+            } else {
+                try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
             }
         }
         var useLarge = (w >= 390);
