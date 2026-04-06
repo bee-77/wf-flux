@@ -26,6 +26,7 @@ fenix7pronowifi.resourcePath = resources;resources-60;resources-bg-260
 fenix8solar47mm.resourcePath = resources;resources-65;resources-bg-260
 
 # ── 280px Screens ────────────────────────────────────────────────────────────
+fenix6xpro.resourcePath      = resources;resources-60;resources-bg-280
 enduro3.resourcePath         = resources;resources-60;resources-bg-280
 fenix7x.resourcePath         = resources;resources-60;resources-bg-280
 fenix7xpro.resourcePath      = resources;resources-60;resources-bg-280
