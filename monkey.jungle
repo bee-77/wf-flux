@@ -15,6 +15,7 @@ fr255sm.resourcePath         = resources;resources-60;resources-bg-240
 
 # ── 260px Screens ────────────────────────────────────────────────────────────
 fenix6.resourcePath          = resources;resources-60;resources-bg-260
+fenix6pro.resourcePath       = resources;resources-60;resources-bg-260
 fr255.resourcePath           = resources;resources-60;resources-bg-260
 fr255m.resourcePath          = resources;resources-60;resources-bg-260
 fr955.resourcePath           = resources;resources-60;resources-bg-260
