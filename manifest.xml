@@ -7,7 +7,7 @@
         minApiLevel="3.2.0"
         name="@Strings.AppName"
         type="watchface"
-        version="1.0.0">
+        version="1.0.2">
 
         <iq:products>
             <!-- Running -->

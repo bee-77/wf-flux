@@ -22,10 +22,6 @@ class SportFaceView extends WatchUi.WatchFace {
     var mStepsIcon      as BitmapResource?;
     var mHeartIconLg    as BitmapResource?;
     var mStepsIconLg    as BitmapResource?;
-    var mHeartIconDark  as BitmapResource?;
-    var mStepsIconDark  as BitmapResource?;
-    var mHeartIconLgDark as BitmapResource?;
-    var mStepsIconLgDark as BitmapResource?;
 
     var mTheme       as Number = 0;  // 0=Black, 1=Light
     var mWeatherCondition as Number = -1;
@@ -53,12 +49,12 @@ class SportFaceView extends WatchUi.WatchFace {
 
     function getThemeColors() as Dictionary {
         if (mTheme == 1) {
-            // Orange-Hintergrund: alle Texte/Icons schwarz
+            // Orange-Hintergrund: alle Texte/Icons weiß
             return {
-                "time"     => 0x000000, "primary"  => 0x000000,
-                "secondary"=> 0x221100, "divider"  => 0x000000,
-                "slogan"   => 0x000000, "muted"    => 0x333333,
-                "divider2" => 0x442200, "label"    => 0x000000
+                "time"     => 0xFFFFFF, "primary"  => 0xFFFFFF,
+                "secondary"=> 0xFFE0CC, "divider"  => 0xFFFFFF,
+                "slogan"   => 0xFFFFFF, "muted"    => 0xDDDDDD,
+                "divider2" => 0xFF9944, "label"    => 0xFFFFFF
             };
         } else {
             return {
@@ -77,25 +73,32 @@ class SportFaceView extends WatchUi.WatchFace {
         var cy = dh / 2;
 
         // Hintergrund-Bilder nur einmal laden (gerätespezifisch via monkey.jungle)
+        // Fenix 6S (w=240): übersprungen — zu wenig Heap
+        // Fenix 6  (w=260): nur laden wenn freier Heap >= 180KB (fenix7/7pro haben deutlich mehr)
         if (!mBgLoaded) {
             mBgLoaded = true;
-            try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
-            try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
+            var loadBg = (w > 260);
+            if (!loadBg && w == 260) {
+                try { loadBg = (System.getSystemStats().freeMemory >= 180000); } catch (ex) {}
+            }
+            if (loadBg) {
+                try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
+                try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
+            }
         }
-        if (mWeatherIcons.size() == 0) { loadWeatherIcons(); }
-        if (mHeartIcon       == null) { try { mHeartIcon       = WatchUi.loadResource(Rez.Drawables.ic_heart)        as BitmapResource; } catch (ex) {} }
-        if (mStepsIcon       == null) { try { mStepsIcon       = WatchUi.loadResource(Rez.Drawables.ic_steps)        as BitmapResource; } catch (ex) {} }
-        if (mHeartIconLg     == null) { try { mHeartIconLg     = WatchUi.loadResource(Rez.Drawables.ic_heart_lg)     as BitmapResource; } catch (ex) {} }
-        if (mStepsIconLg     == null) { try { mStepsIconLg     = WatchUi.loadResource(Rez.Drawables.ic_steps_lg)     as BitmapResource; } catch (ex) {} }
-        if (mHeartIconDark   == null) { try { mHeartIconDark   = WatchUi.loadResource(Rez.Drawables.ic_heart_dark)   as BitmapResource; } catch (ex) {} }
-        if (mStepsIconDark   == null) { try { mStepsIconDark   = WatchUi.loadResource(Rez.Drawables.ic_steps_dark)   as BitmapResource; } catch (ex) {} }
-        if (mHeartIconLgDark == null) { try { mHeartIconLgDark = WatchUi.loadResource(Rez.Drawables.ic_heart_lg_dark) as BitmapResource; } catch (ex) {} }
-        if (mStepsIconLgDark == null) { try { mStepsIconLgDark = WatchUi.loadResource(Rez.Drawables.ic_steps_lg_dark) as BitmapResource; } catch (ex) {} }
+        var useLarge = (w >= 390);
+        if (mWeatherIcons.size() == 0) { loadWeatherIcons(useLarge); }
+        if (mHeartIcon == null) { try { mHeartIcon = WatchUi.loadResource(Rez.Drawables.ic_heart) as BitmapResource; } catch (ex) {} }
+        if (mStepsIcon == null) { try { mStepsIcon = WatchUi.loadResource(Rez.Drawables.ic_steps) as BitmapResource; } catch (ex) {} }
+        if (useLarge) {
+            if (mHeartIconLg == null) { try { mHeartIconLg = WatchUi.loadResource(Rez.Drawables.ic_heart_lg) as BitmapResource; } catch (ex) {} }
+            if (mStepsIconLg == null) { try { mStepsIconLg = WatchUi.loadResource(Rez.Drawables.ic_steps_lg) as BitmapResource; } catch (ex) {} }
+        }
 
         var colors = getThemeColors();
 
         if (mSleeping) {
-            drawSleepScreen(dc, cx, cy, w, dh, colors);
+            drawSleepScreen(dc, cx, dh);
             return;
         }
 
@@ -124,7 +127,7 @@ class SportFaceView extends WatchUi.WatchFace {
         dc.drawArc(cx, cy, cx - w * 3 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
 
         // === Tick-Marks ===
-        var tickColor = (mTheme == 1) ? 0x000000 : 0xFF6600;
+        var tickColor = (mTheme == 1) ? 0xFFFFFF : 0xFF6600;
         dc.setColor(tickColor, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         var te = w * 1 / 100;
@@ -159,8 +162,10 @@ class SportFaceView extends WatchUi.WatchFace {
         } else {
             timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
         }
-        var tinyH = (dc.getTextDimensions("Mi", Graphics.FONT_XTINY))[1] as Number;
-        var timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number;
+        var tinyH = 14;
+        var timeH = 60;
+        try { tinyH = (dc.getTextDimensions("Mi", Graphics.FONT_XTINY))[1]         as Number; } catch (ex) {}
+        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number; } catch (ex) {}
         var pad   = dh * 2 / 100;
 
         // Uhrzeit vertikal zentrieren (leicht nach oben versetzt)
@@ -173,7 +178,7 @@ class SportFaceView extends WatchUi.WatchFace {
         var dotY     = ySlog1 - pad;
 
         // Top-Slots (Wetter + Schritte)
-        drawTopSlots(dc, cx, cy, colors, w, dh, yTopSlot, lblOff);
+        drawTopSlots(dc, cx, colors, w, yTopSlot, lblOff);
 
         // Uhrzeit (mit Glow — auf Orange-Theme dunkler Schatten)
         var glowColor = (mTheme == 1) ? 0x552200 : 0xFF6600;
@@ -196,14 +201,14 @@ class SportFaceView extends WatchUi.WatchFace {
         dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx - gap, yDateHr, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_RIGHT);
         var hrVal = "--";
-        var hrInfo = Activity.getActivityInfo();
-        if (hrInfo != null && hrInfo.currentHeartRate != null && (hrInfo.currentHeartRate as Number) > 0) {
-            hrVal = (hrInfo.currentHeartRate as Number).toString();
-        }
+        try {
+            var hrInfo = Activity.getActivityInfo();
+            if (hrInfo != null && (hrInfo has :currentHeartRate) && hrInfo.currentHeartRate != null && (hrInfo.currentHeartRate as Number) > 0) {
+                hrVal = (hrInfo.currentHeartRate as Number).toString();
+            }
+        } catch (ex) {}
         var hrX = cx + gap;
-        var heartIcon = (mTheme == 1)
-            ? ((w >= 390 && mHeartIconLgDark != null) ? mHeartIconLgDark : mHeartIconDark)
-            : ((w >= 390 && mHeartIconLg     != null) ? mHeartIconLg     : mHeartIcon);
+        var heartIcon = (w >= 390 && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
         if (heartIcon != null) { dc.drawBitmap(hrX, yDateHr + 1, heartIcon as BitmapResource); }
         var heartW = (w >= 390) ? 24 : 18;
         dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
@@ -219,7 +224,6 @@ class SportFaceView extends WatchUi.WatchFace {
     }
 
     function getTopSlotData(slot as Number) as Array {
-        var actInfo = ActivityMonitor.getInfo();
         if (slot == 0) {
             var tempStr = "--"; var condStr = "";
             mWeatherCondition = -1;
@@ -234,7 +238,9 @@ class SportFaceView extends WatchUi.WatchFace {
                 }
             } catch (ex) {}
             return [tempStr, condStr] as Array;
-        } else if (slot == 1) {
+        }
+        var actInfo = ActivityMonitor.getInfo();
+        if (slot == 1) {
             var calStr = "--";
             if (actInfo has :calories && actInfo.calories != null) { calStr = actInfo.calories.toString(); }
             return [calStr, "KCAL"] as Array;
@@ -267,7 +273,7 @@ class SportFaceView extends WatchUi.WatchFace {
         }
     }
 
-    function drawTopSlots(dc as Dc, cx as Number, cy as Number, colors as Dictionary, sw as Number, sh as Number, yTop as Number, lblOff as Number) as Void {
+    function drawTopSlots(dc as Dc, cx as Number, colors as Dictionary, sw as Number, yTop as Number, lblOff as Number) as Void {
         var leftData  = getTopSlotData(mTopLeft);
         var rightData = getTopSlotData(mTopRight);
         var xOff = sw * 22 / 100;
@@ -315,7 +321,6 @@ class SportFaceView extends WatchUi.WatchFace {
 
     function drawSlotIcon(dc as Dc, slot as Number, x as Number, y as Number) as Number {
         var large = (dc.getWidth() >= 390);
-        var dark  = (mTheme == 1);
         if (slot == 0 && mWeatherCondition >= 0) {
             var wIcon = large ? getWeatherIconLg(mWeatherCondition) : getWeatherIcon(mWeatherCondition);
             if (wIcon == null) { wIcon = getWeatherIcon(mWeatherCondition); }
@@ -324,9 +329,7 @@ class SportFaceView extends WatchUi.WatchFace {
                 return large ? 30 : 20;
             }
         } else if (slot == 2) {
-            var icon = dark
-                ? (large ? mStepsIconLgDark : mStepsIconDark)
-                : (large ? mStepsIconLg     : mStepsIcon);
+            var icon = large ? mStepsIconLg : mStepsIcon;
             if (icon != null) {
                 dc.drawBitmap(x, y + 2, icon as BitmapResource);
                 return large ? 24 : 16;
@@ -335,7 +338,7 @@ class SportFaceView extends WatchUi.WatchFace {
         return 0;
     }
 
-    function loadWeatherIcons() as Void {
+    function loadWeatherIcons(useLarge as Boolean) as Void {
         try {
             mWeatherIcons[Weather.CONDITION_CLEAR]         = WatchUi.loadResource(Rez.Drawables.ic_sun);
             mWeatherIcons[Weather.CONDITION_PARTLY_CLOUDY] = WatchUi.loadResource(Rez.Drawables.ic_partly_cloudy);
@@ -343,17 +346,21 @@ class SportFaceView extends WatchUi.WatchFace {
             mWeatherIcons[Weather.CONDITION_RAIN]          = WatchUi.loadResource(Rez.Drawables.ic_rain);
             mWeatherIcons[Weather.CONDITION_SNOW]          = WatchUi.loadResource(Rez.Drawables.ic_snow);
             mWeatherIcons[Weather.CONDITION_FOG]           = WatchUi.loadResource(Rez.Drawables.ic_fog);
-            mWeatherIconsLg[Weather.CONDITION_CLEAR]         = WatchUi.loadResource(Rez.Drawables.ic_sun_lg);
-            mWeatherIconsLg[Weather.CONDITION_PARTLY_CLOUDY] = WatchUi.loadResource(Rez.Drawables.ic_partly_cloudy_lg);
-            mWeatherIconsLg[Weather.CONDITION_CLOUDY]        = WatchUi.loadResource(Rez.Drawables.ic_cloudy_lg);
-            mWeatherIconsLg[Weather.CONDITION_RAIN]          = WatchUi.loadResource(Rez.Drawables.ic_rain_lg);
-            mWeatherIconsLg[Weather.CONDITION_SNOW]          = WatchUi.loadResource(Rez.Drawables.ic_snow_lg);
-            mWeatherIconsLg[Weather.CONDITION_FOG]           = WatchUi.loadResource(Rez.Drawables.ic_fog_lg);
+            if (useLarge) {
+                mWeatherIconsLg[Weather.CONDITION_CLEAR]         = WatchUi.loadResource(Rez.Drawables.ic_sun_lg);
+                mWeatherIconsLg[Weather.CONDITION_PARTLY_CLOUDY] = WatchUi.loadResource(Rez.Drawables.ic_partly_cloudy_lg);
+                mWeatherIconsLg[Weather.CONDITION_CLOUDY]        = WatchUi.loadResource(Rez.Drawables.ic_cloudy_lg);
+                mWeatherIconsLg[Weather.CONDITION_RAIN]          = WatchUi.loadResource(Rez.Drawables.ic_rain_lg);
+                mWeatherIconsLg[Weather.CONDITION_SNOW]          = WatchUi.loadResource(Rez.Drawables.ic_snow_lg);
+                mWeatherIconsLg[Weather.CONDITION_FOG]           = WatchUi.loadResource(Rez.Drawables.ic_fog_lg);
+            }
         } catch (ex) {}
         try {
             if (Weather has :CONDITION_THUNDERSTORM) {
-                mWeatherIcons[Weather.CONDITION_THUNDERSTORM]   = WatchUi.loadResource(Rez.Drawables.ic_storm);
-                mWeatherIconsLg[Weather.CONDITION_THUNDERSTORM] = WatchUi.loadResource(Rez.Drawables.ic_storm_lg);
+                mWeatherIcons[Weather.CONDITION_THUNDERSTORM] = WatchUi.loadResource(Rez.Drawables.ic_storm);
+                if (useLarge) {
+                    mWeatherIconsLg[Weather.CONDITION_THUNDERSTORM] = WatchUi.loadResource(Rez.Drawables.ic_storm_lg);
+                }
             }
         } catch (ex) {}
     }
@@ -383,8 +390,7 @@ class SportFaceView extends WatchUi.WatchFace {
         return "---";
     }
 
-
-    function drawSleepScreen(dc as Dc, cx as Number, cy as Number, w as Number, h as Number, colors as Dictionary) as Void {
+    function drawSleepScreen(dc as Dc, cx as Number, h as Number) as Void {
         // Schwarzer Hintergrund
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -399,15 +405,13 @@ class SportFaceView extends WatchUi.WatchFace {
         } else {
             timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
         }
-        // Gedimmte Farbe für Sleep (30% der normalen Helligkeit)
-        var sleepColor = (mTheme == 1) ? 0x552200 : 0x552200;
-        dc.setColor(sleepColor, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x552200, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 35 / 100, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Slogan unten
         dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 82 / 100, Graphics.FONT_XTINY, "ALLES KANN", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, "NICHTS MUSS", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h * 82 / 100, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }
