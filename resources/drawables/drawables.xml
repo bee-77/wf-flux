@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<resources>
+  <bitmap id="launcher_icon"    filename="launcher_icon.png" />
+  <bitmap id="ic_sun"               filename="ic_sun.png" />
+  <bitmap id="ic_partly_cloudy"     filename="ic_partly_cloudy.png" />
+  <bitmap id="ic_cloudy"            filename="ic_cloudy.png" />
+  <bitmap id="ic_rain"              filename="ic_rain.png" />
+  <bitmap id="ic_snow"              filename="ic_snow.png" />
+  <bitmap id="ic_fog"               filename="ic_fog.png" />
+  <bitmap id="ic_storm"             filename="ic_storm.png" />
+  <bitmap id="ic_heart"             filename="ic_heart.png" />
+  <bitmap id="ic_heart_dark"        filename="ic_heart_dark.png" />
+  <bitmap id="ic_steps"             filename="ic_steps.png" />
+  <bitmap id="ic_steps_dark"        filename="ic_steps_dark.png" />
+  <bitmap id="ic_sun_lg"            filename="ic_sun_lg.png" />
+  <bitmap id="ic_partly_cloudy_lg"  filename="ic_partly_cloudy_lg.png" />
+  <bitmap id="ic_cloudy_lg"         filename="ic_cloudy_lg.png" />
+  <bitmap id="ic_rain_lg"           filename="ic_rain_lg.png" />
+  <bitmap id="ic_snow_lg"           filename="ic_snow_lg.png" />
+  <bitmap id="ic_fog_lg"            filename="ic_fog_lg.png" />
+  <bitmap id="ic_storm_lg"          filename="ic_storm_lg.png" />
+  <bitmap id="ic_heart_lg"          filename="ic_heart_lg.png" />
+  <bitmap id="ic_heart_lg_dark"     filename="ic_heart_lg_dark.png" />
+  <bitmap id="ic_steps_lg"          filename="ic_steps_lg.png" />
+  <bitmap id="ic_steps_lg_dark"     filename="ic_steps_lg_dark.png" />
+</resources>

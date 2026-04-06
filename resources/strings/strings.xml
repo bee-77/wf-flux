@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<resources>
+  <string id="AppName">Bokeltsen Blagen</string>
+  <string id="SettingTopLeftTitle">Oben Links</string>
+  <string id="SettingTopRightTitle">Oben Rechts</string>
+  <string id="SettingTimeStyleTitle">Uhrzeitformat</string>
+  <string id="SettingBgThemeTitle">Hintergrund</string>
+</resources>

@@ -1,0 +1,30 @@
+# Build output
+bin/
+gen/
+release/
+mir/
+internal-mir/
+
+# Compiled app package
+*.iq
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# VS Code (optional — remove if you want to share launch config)
+# .vscode/
+
+# Garmin SDK temporary files
+*.prg
+*.debug.xml
+*-settings.json
+
+# Development files
+preview.html
+
+# Claude Code
+.claude/
+
+# Legacy / submodules
+WatchFace/

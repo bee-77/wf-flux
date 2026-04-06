@@ -1,0 +1,78 @@
+project.manifest = manifest.xml
+base.sourcePath = source
+base.resourcePath = resources
+
+# ─── Geräte → Launcher-Icon + Hintergrund-Ressourcen ────────────────────────
+# Jedes Gerät bekommt NUR seine passenden 2 Background-PNGs compiliert.
+# Format: device.resourcePath = resources;resources-ICON;resources-bg-SCREEN
+
+# ── 240px Screens ────────────────────────────────────────────────────────────
+fenix6s.resourcePath         = resources;resources-60;resources-bg-240
+fenix7s.resourcePath         = resources;resources-60;resources-bg-240
+fenix7spro.resourcePath      = resources;resources-60;resources-bg-240
+fr255s.resourcePath          = resources;resources-60;resources-bg-240
+fr255sm.resourcePath         = resources;resources-60;resources-bg-240
+
+# ── 260px Screens ────────────────────────────────────────────────────────────
+fenix6.resourcePath          = resources;resources-60;resources-bg-260
+fr255.resourcePath           = resources;resources-60;resources-bg-260
+fr255m.resourcePath          = resources;resources-60;resources-bg-260
+fr955.resourcePath           = resources;resources-60;resources-bg-260
+fenix7.resourcePath          = resources;resources-60;resources-bg-260
+fenix7pro.resourcePath       = resources;resources-60;resources-bg-260
+fenix7pronowifi.resourcePath = resources;resources-60;resources-bg-260
+fenix8solar47mm.resourcePath = resources;resources-65;resources-bg-260
+
+# ── 280px Screens ────────────────────────────────────────────────────────────
+enduro3.resourcePath         = resources;resources-60;resources-bg-280
+fenix7x.resourcePath         = resources;resources-60;resources-bg-280
+fenix7xpro.resourcePath      = resources;resources-60;resources-bg-280
+fenix7xpronowifi.resourcePath = resources;resources-60;resources-bg-280
+fenix8solar51mm.resourcePath = resources;resources-65;resources-bg-280
+
+# ── 320px Screens (rectangular) ──────────────────────────────────────────────
+venusq2.resourcePath         = resources;resources-56;resources-bg-320
+venusq2m.resourcePath        = resources;resources-56;resources-bg-320
+
+# ── 390px Screens ────────────────────────────────────────────────────────────
+fr165.resourcePath           = resources;resources-54;resources-bg-390
+fr165m.resourcePath          = resources;resources-54;resources-bg-390
+fr265s.resourcePath          = resources;resources-60;resources-bg-390
+approachs50.resourcePath     = resources;resources-56;resources-bg-390
+approachs7042mm.resourcePath = resources;resources-60;resources-bg-390
+descentmk343mm.resourcePath  = resources;resources-60;resources-bg-390
+descentmk351mm.resourcePath  = resources;resources-60;resources-bg-390
+instinct3amoled45mm.resourcePath = resources;resources-60;resources-bg-390
+instinct3solar45mm.resourcePath  = resources;resources-62;resources-bg-390
+venu3.resourcePath           = resources;resources-70;resources-bg-390
+venu3s.resourcePath          = resources;resources-70;resources-bg-390
+vivoactive5.resourcePath     = resources;resources-56;resources-bg-390
+venu441mm.resourcePath       = resources;resources-54;resources-bg-390
+vivoactive6.resourcePath     = resources;resources-54;resources-bg-390
+
+# ── 416px Screens ────────────────────────────────────────────────────────────
+fr265.resourcePath           = resources;resources-60;resources-bg-416
+d2airx10.resourcePath        = resources;resources-70;resources-bg-416
+d2mach1.resourcePath         = resources;resources-60;resources-bg-416
+epix2.resourcePath           = resources;resources-60;resources-bg-416
+epix2pro42mm.resourcePath    = resources;resources-60;resources-bg-416
+instinct3amoled50mm.resourcePath = resources;resources-60;resources-bg-416
+instinctcrossoveramoled.resourcePath = resources;resources-38;resources-bg-416
+fenix843mm.resourcePath      = resources;resources-60;resources-bg-416
+fenixe.resourcePath          = resources;resources-60;resources-bg-416
+marq2.resourcePath           = resources;resources-60;resources-bg-416
+marq2aviator.resourcePath    = resources;resources-60;resources-bg-416
+venu445mm.resourcePath       = resources;resources-65;resources-bg-416
+venux1.resourcePath          = resources;resources-65;resources-bg-416
+
+# ── 454px Screens ────────────────────────────────────────────────────────────
+fr57042mm.resourcePath       = resources;resources-54;resources-bg-454
+fr57047mm.resourcePath       = resources;resources-65;resources-bg-454
+fr965.resourcePath           = resources;resources-65;resources-bg-454
+fr970.resourcePath           = resources;resources-65;resources-bg-454
+approachs7047mm.resourcePath = resources;resources-70;resources-bg-454
+d2mach2.resourcePath         = resources;resources-65;resources-bg-454
+epix2pro47mm.resourcePath    = resources;resources-60;resources-bg-454
+epix2pro51mm.resourcePath    = resources;resources-60;resources-bg-454
+fenix847mm.resourcePath      = resources;resources-65;resources-bg-454
+fenix8pro47mm.resourcePath   = resources;resources-65;resources-bg-454

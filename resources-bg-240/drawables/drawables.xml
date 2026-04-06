@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<resources>
+  <bitmap id="bg_black" filename="bg_black.png" />
+  <bitmap id="bg_light" filename="bg_light.png" />
+</resources>

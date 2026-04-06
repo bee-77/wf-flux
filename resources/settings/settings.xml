@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<settings>
+
+  <!-- Top Slots -->
+  <setting propertyKey="@Properties.top_left" title="@Strings.SettingTopLeftTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Wetter</listEntry>
+      <listEntry value="1">Kalorien</listEntry>
+      <listEntry value="2">Schritte</listEntry>
+      <listEntry value="3">Stockwerke</listEntry>
+      <listEntry value="4">Aktivitätszeit</listEntry>
+    </settingConfig>
+  </setting>
+
+  <setting propertyKey="@Properties.top_right" title="@Strings.SettingTopRightTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Wetter</listEntry>
+      <listEntry value="1">Kalorien</listEntry>
+      <listEntry value="2">Schritte</listEntry>
+      <listEntry value="3">Stockwerke</listEntry>
+      <listEntry value="4">Aktivitätszeit</listEntry>
+    </settingConfig>
+  </setting>
+
+  <!-- Time Style -->
+  <setting propertyKey="@Properties.time_style" title="@Strings.SettingTimeStyleTitle">
+    <settingConfig type="list">
+      <listEntry value="0">12h (AM/PM)</listEntry>
+      <listEntry value="1">Military (24h)</listEntry>
+    </settingConfig>
+  </setting>
+
+  <!-- Background Theme -->
+  <setting propertyKey="@Properties.bg_theme" title="@Strings.SettingBgThemeTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Schwarz (AMOLED)</listEntry>
+      <listEntry value="1">Orange / Schwarz</listEntry>
+    </settingConfig>
+  </setting>
+
+
+</settings>
