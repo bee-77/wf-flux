@@ -196,51 +196,61 @@ class SportFaceView extends WatchUi.WatchFace {
             dc.drawText(cx, yTime + timeH + pad / 2, Graphics.FONT_XTINY, ampm, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // Datum + Herzfrequenz + Akku
-        var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var dateStr = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
-        var gap = w * 4 / 100;
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - gap, yDateHr, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_RIGHT);
-
-        // Herzfrequenz
-        var hrVal = "--";
+        // Datum + Herzfrequenz + Akku — als Block zentriert
+        var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
+        var hrVal    = "--";
         try {
             var hrInfo = Activity.getActivityInfo();
             if (hrInfo != null && (hrInfo has :currentHeartRate) && hrInfo.currentHeartRate != null && (hrInfo.currentHeartRate as Number) > 0) {
                 hrVal = (hrInfo.currentHeartRate as Number).toString();
             }
         } catch (ex) {}
-        var hrX = cx + gap;
-        var heartIcon = (w >= 390 && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
-        if (heartIcon != null) { dc.drawBitmap(hrX, yDateHr + 1, heartIcon as BitmapResource); }
-        var heartW = (w >= 390) ? 24 : 18;
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        var bpmStr = hrVal + " bpm";
-        dc.drawText(hrX + heartW + 2, yDateHr, Graphics.FONT_XTINY, bpmStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Akku — gezeichneter Balken + Prozentzahl
-        var batPct = 0;
+        var batPct   = 0;
         try { batPct = System.getSystemStats().battery.toNumber(); } catch (ex) {}
+
+        var heartW   = (w >= 390) ? 24 : 18;
+        var batBarW  = w * 5 / 100;
+        var iGap     = w * 2 / 100;  // innerer Abstand zwischen Elementen
+        var bpmStr   = hrVal + " bpm";
+        var batPctStr = batPct.format("%d") + "%";
+
+        // Gesamtbreite messen → Block zentrieren
+        var dateW    = (dc.getTextDimensions(dateStr,   Graphics.FONT_XTINY))[0] as Number;
+        var bpmW     = (dc.getTextDimensions(bpmStr,    Graphics.FONT_XTINY))[0] as Number;
+        var batPctW  = (dc.getTextDimensions(batPctStr, Graphics.FONT_XTINY))[0] as Number;
+        var totalW   = dateW + iGap + heartW + 2 + bpmW + iGap + batBarW + 2 + iGap + batPctW;
+        var startX   = cx - totalW / 2;
+
+        // Positionen
+        var xDate    = startX;
+        var xHeart   = xDate  + dateW + iGap;
+        var xBpm     = xHeart + heartW + 2;
+        var xBatBar  = xBpm   + bpmW  + iGap;
+        var xBatPct  = xBatBar + batBarW + 2 + iGap;
+        var batY     = yDateHr + (tinyH - 8) / 2;
+
+        // Datum
+        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(xDate, yDateHr, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Herzfrequenz
+        var heartIcon = (w >= 390 && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
+        if (heartIcon != null) { dc.drawBitmap(xHeart, yDateHr + 1, heartIcon as BitmapResource); }
+        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(xBpm, yDateHr, Graphics.FONT_XTINY, bpmStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Akkubalken
         var batColor = (batPct > 50) ? 0x00AA00 : ((batPct > 20) ? 0xFF9900 : 0xCC0000);
-        var bpmDims  = dc.getTextDimensions(bpmStr, Graphics.FONT_XTINY);
-        var batX     = hrX + heartW + 2 + (bpmDims[0] as Number) + (w * 2 / 100);
-        var batY     = yDateHr + (tinyH - 8) / 2;  // vertikal zentriert zur Textzeile
-        var batW     = w * 5 / 100;   // Balken-Breite (~12px bei 240px, ~20px bei 390px)
-        var batH     = 8;
-        var fillW    = batW * batPct / 100;
-        // Umriss
+        var fillW    = batBarW * batPct / 100;
         dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        dc.drawRectangle(batX, batY, batW, batH);
-        // Terminal
-        dc.fillRectangle(batX + batW, batY + 2, 2, 4);
-        // Füllung
+        dc.drawRectangle(xBatBar, batY, batBarW, 8);
+        dc.fillRectangle(xBatBar + batBarW, batY + 2, 2, 4);
         dc.setColor(batColor, Graphics.COLOR_TRANSPARENT);
-        if (fillW > 0) { dc.fillRectangle(batX + 1, batY + 1, fillW - 1, batH - 2); }
-        // Prozentzahl
+        if (fillW > 0) { dc.fillRectangle(xBatBar + 1, batY + 1, fillW - 1, 6); }
         dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(batX + batW + 4, yDateHr, Graphics.FONT_XTINY, batPct.format("%d") + "%", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(xBatPct, yDateHr, Graphics.FONT_XTINY, batPctStr, Graphics.TEXT_JUSTIFY_LEFT);
 
         // Slogan
         dc.setColor(colors["divider"] as Number, Graphics.COLOR_TRANSPARENT);
