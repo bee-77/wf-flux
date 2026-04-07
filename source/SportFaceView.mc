@@ -175,7 +175,7 @@ class SportFaceView extends WatchUi.WatchFace {
         var yTopSlot = yTime - tinyH * 2 - pad;
         var lblOff   = tinyH + pad;
         var yDateHr  = yTime + timeH + pad;
-        var ySlog1   = dh * 82 / 100;
+        var ySlog1   = dh * 76 / 100;
         var ySlog2   = ySlog1 + tinyH;
         var dotY     = ySlog1 - pad;
 
