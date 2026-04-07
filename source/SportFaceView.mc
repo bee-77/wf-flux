@@ -172,7 +172,7 @@ class SportFaceView extends WatchUi.WatchFace {
 
         // Uhrzeit vertikal zentrieren (leicht nach oben versetzt)
         var yTime    = cy - timeH / 2 - dh * 4 / 100;
-        var yTopSlot = yTime - tinyH * 2 - pad * 3;
+        var yTopSlot = yTime - tinyH * 2 - pad;
         var lblOff   = tinyH + pad;
         var yDateHr  = yTime + timeH + pad;
         var ySlog1   = dh * 82 / 100;
