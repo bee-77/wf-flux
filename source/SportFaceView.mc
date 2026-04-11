@@ -429,11 +429,11 @@ class SportFaceView extends WatchUi.WatchFace {
     }
 
     function drawSleepScreen(dc as Dc, cx as Number, h as Number) as Void {
-        // Schwarzer Hintergrund
+        // Schwarzer Hintergrund (AMOLED-optimiert)
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
-        // Uhrzeit zentriert
+        // Uhrzeit — weiß mit Kontur (1px dunkler Schatten rundum → Tiefe + Lesbarkeit)
         var clockTime = System.getClockTime();
         var timeStr = "";
         if (mTimeStyle == 0) {
@@ -443,13 +443,26 @@ class SportFaceView extends WatchUi.WatchFace {
         } else {
             timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
         }
-        dc.setColor(0x552200, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 35 / 100, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        var yTime = h * 35 / 100;
+        dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx - 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx + 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Slogan unten
-        dc.setColor(0x333333, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 82 / 100, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
+        // Slogan — weiß mit Kontur
+        var tinyH = 14;
+        try { tinyH = (dc.getTextDimensions("Mi", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
+        var ySlog1 = h * 76 / 100;
+        var ySlog2 = ySlog1 + tinyH;
+        dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, ySlog1 + 1, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, ySlog2 + 1, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, ySlog1, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, ySlog2, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }
