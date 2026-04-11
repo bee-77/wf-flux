@@ -444,13 +444,13 @@ class SportFaceView extends WatchUi.WatchFace {
             timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
         }
         var yTime = h * 35 / 100;
-        // Weiße Kontur (1px rundum), Füllung schwarz
+        // Weiße Kontur (1px rundum), Füllung orange
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx - 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx + 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0xFF6600, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Slogan — weiß mit Kontur
