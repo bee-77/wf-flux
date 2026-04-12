@@ -28,6 +28,7 @@ class SportFaceView extends WatchUi.WatchFace {
     var mTimeStyle   as Number = 1;  // 0=12h, 1=Military (24h)
     var mTopLeft     as Number = 0;  // 0=Wetter, 1=Kalorien, 2=Schritte, 3=Stockwerke, 4=Aktivitätszeit
     var mTopRight    as Number = 2;
+    var mAodColor    as Number = 0;  // 0=Orange mit weißer Outline, 1=Schwarz mit weißer Outline
 
     var mSleeping    as Boolean = false;
 
@@ -46,6 +47,7 @@ class SportFaceView extends WatchUi.WatchFace {
         var ts = Properties.getValue("time_style"); if (ts != null) { mTimeStyle = ts as Number; }
         var tl = Properties.getValue("top_left");   if (tl != null) { mTopLeft = tl as Number; }
         var tr = Properties.getValue("top_right");  if (tr != null) { mTopRight = tr as Number; }
+        var ac = Properties.getValue("aod_color");  if (ac != null) { mAodColor = ac as Number; }
         // Theme gewechselt → anderen Background nachladen
         if (mTheme != prevTheme) {
             mBgLoaded = false;
@@ -444,13 +446,14 @@ class SportFaceView extends WatchUi.WatchFace {
             timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
         }
         var yTime = h * 35 / 100;
-        // Weiße Kontur (1px rundum), Füllung orange
+        // Weiße Kontur (1px rundum), Füllung per Einstellung
+        var aodFill = (mAodColor == 1) ? Graphics.COLOR_BLACK : 0xFF6600;
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx - 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx + 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(0xFF6600, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(aodFill, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Slogan — weiß mit Kontur

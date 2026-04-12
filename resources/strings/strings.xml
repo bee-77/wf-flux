@@ -5,4 +5,5 @@
   <string id="SettingTopRightTitle">Oben Rechts</string>
   <string id="SettingTimeStyleTitle">Uhrzeitformat</string>
   <string id="SettingBgThemeTitle">Hintergrund</string>
+  <string id="SettingAodColorTitle">AOD Uhrzeitfarbe</string>
 </resources>

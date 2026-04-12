@@ -38,4 +38,12 @@
     </settingConfig>
   </setting>
 
+  <!-- AOD Uhrzeitfarbe -->
+  <setting propertyKey="@Properties.aod_color" title="@Strings.SettingAodColorTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Orange (Standard)</listEntry>
+      <listEntry value="1">Schwarz</listEntry>
+    </settingConfig>
+  </setting>
+
 </settings>

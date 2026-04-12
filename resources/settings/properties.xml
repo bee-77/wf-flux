@@ -9,4 +9,7 @@
   <!-- Top Slots: 0=Wetter, 1=Kalorien, 2=Schritte, 3=Stockwerke, 4=Aktivitätszeit -->
   <property id="top_left"  type="number">0</property>
   <property id="top_right" type="number">2</property>
+
+  <!-- AOD Time Color: 0=Orange mit weißer Outline, 1=Schwarz mit weißer Outline -->
+  <property id="aod_color" type="number">0</property>
 </properties>
