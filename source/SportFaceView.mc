@@ -158,8 +158,7 @@ class FluxView extends WatchUi.WatchFace {
             dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // ── Wochentag + Datum unter der Uhrzeit ──────────────────────────────
-        var yDate    = yTime + timeH - 4;
+        // ── Wochentag + Datum in 3D-Box ──────────────────────────────────────
         var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var days     = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
         var dow      = 0;
@@ -168,11 +167,34 @@ class FluxView extends WatchUi.WatchFace {
         var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
         var ampmStr  = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? "  AM" : "  PM") : "";
         var fullDate = dayAbbr + "  " + dateStr + ampmStr;
-        dc.setColor(0x334455, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yDate, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Untere Zeilen von unten ankern
+        var yInfo   = h * 87 / 100;
+        var boxPadX = w * 4 / 100;
+        var boxPadY = 4;
+        var boxW    = (dc.getTextDimensions(fullDate, Graphics.FONT_XTINY))[0] as Number + 2 * boxPadX;
+        var boxH    = tinyH + 2 * boxPadY;
+        var yDate   = yInfo - boxH - 6;
+        var boxX    = cx - boxW / 2;
+        var boxY    = yDate;
+
+        // 3D-Box: dunkle Füllung
+        dc.setColor(0x060E18, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(boxX, boxY, boxW, boxH, 3);
+        // Highlight: oben + links (Lichtquelle oben-links)
+        dc.setColor(0x1E3248, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(boxX + 3, boxY,          boxX + boxW - 4, boxY);
+        dc.drawLine(boxX,     boxY + 1,      boxX,            boxY + boxH - 2);
+        // Schatten: unten + rechts
+        dc.setColor(0x010406, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(boxX + 3, boxY + boxH - 1, boxX + boxW - 4, boxY + boxH - 1);
+        dc.drawLine(boxX + boxW - 1, boxY + 1, boxX + boxW - 1, boxY + boxH - 2);
+        // Datum-Text
+        dc.setColor(0x6688AA, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, boxY + boxPadY, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ── HR + Akku ────────────────────────────────────────────────────────
-        var yInfo = yDate + tinyH + 2;
         drawInfoStrip(dc, cx, w, yInfo, tinyH, lg);
     }
 
@@ -265,19 +287,6 @@ class FluxView extends WatchUi.WatchFace {
         dc.setColor(0x050506, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawArc(cx, cy, r - 1, Graphics.ARC_CLOCKWISE, 0, 180);
-
-        // ── Zweiter innerer Maschinenring ─────────────────────────────────────
-        dc.setColor(0x1C1C24, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawArc(cx, cy, r - w * 6 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
-        dc.setColor(0x363642, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawArc(cx, cy, r - w * 6 / 100, Graphics.ARC_COUNTER_CLOCKWISE, 0, 180);
-
-        // ── Innerer Zifferblatt-Trenner (Flux-Blau) ───────────────────────────
-        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawArc(cx, cy, r - w * 8 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
 
         // ── Kardinalstriche — 3D (Schatten + Körper + Spekularhighlight) ──────
         var te = w * 1 / 100;
