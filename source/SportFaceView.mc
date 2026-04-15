@@ -99,11 +99,11 @@ class FluxView extends WatchUi.WatchFace {
         var tinyH     = 12;
         try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
         // BttF-Segment-Maße (für Layout-Berechnung)
-        var timeDW   = w * 11 / 100;
+        var timeDW   = w * 7 / 100;
         var timeDH   = timeDW * 2;
         var timeSt   = mathMax(2, timeDW / 5);
         var timePad  = timeSt + 2;
-        var dateDW   = w * 7 / 100;
+        var dateDW   = w * 4 / 100;
         var dateDH   = dateDW * 2;
         var dateSt   = mathMax(1, dateDW / 5);
         var datePad  = dateSt + 2;
@@ -612,7 +612,7 @@ class FluxView extends WatchUi.WatchFace {
     // ─────────────────────────────────────────────────────────────────────────
     function drawBttfTime(dc as Dc, cx as Number, y as Number,
                           timeStr as String, w as Number) as Void {
-        var dw  = w * 11 / 100;
+        var dw  = w * 7 / 100;
         var dh  = dw * 2;
         var st  = mathMax(2, dw / 5);
         var cw  = mathMax(st * 2, dw / 3);
@@ -655,7 +655,7 @@ class FluxView extends WatchUi.WatchFace {
     function drawBttfDate(dc as Dc, cx as Number, y as Number,
                           dayAbbr as String, day as Number, month as Number,
                           year as Number, ampm as String, w as Number) as Void {
-        var dw   = w * 7 / 100;
+        var dw   = w * 4 / 100;
         var dh   = dw * 2;
         var st   = mathMax(1, dw / 5);
         var gap  = mathMax(1, dw / 8);
