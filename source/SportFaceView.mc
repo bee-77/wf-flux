@@ -117,7 +117,7 @@ class FluxView extends WatchUi.WatchFace {
         var tipLX   = cx - (arm * 0.86603f).toNumber();   // lower-left  (240°)
         var tipLY   = tipRY;
 
-        var dotR    = max(4, arm / 8);
+        var dotR    = mathMax(4, arm / 8);
 
         // ── Data at arm tips ─────────────────────────────────────────────────
         // Draw before flux so dots render on top
@@ -226,10 +226,10 @@ class FluxView extends WatchUi.WatchFace {
     //  FLUX CAPACITOR (Y-shape) — sizes scale with armLen
     // ─────────────────────────────────────────────────────────────────────────
     function drawFluxCapacitor(dc as Dc, cx as Number, cy as Number, armLen as Number) as Void {
-        var dotR  = max(4, armLen / 8);
-        var ctrR  = max(3, armLen / 10);
-        var glowW = max(5, armLen / 9);
-        var coreW = max(2, armLen / 18);
+        var dotR  = mathMax(4, armLen / 8);
+        var ctrR  = mathMax(3, armLen / 10);
+        var glowW = mathMax(5, armLen / 9);
+        var coreW = mathMax(2, armLen / 18);
 
         var endX = new Array<Number>[3];
         var endY = new Array<Number>[3];
@@ -257,7 +257,7 @@ class FluxView extends WatchUi.WatchFace {
         dc.setColor(C_AMBER, Graphics.COLOR_TRANSPARENT);
         for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], dotR); }
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], max(1, dotR / 3)); }
+        for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], mathMax(1, dotR / 3)); }
 
         // Center junction
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
@@ -265,7 +265,7 @@ class FluxView extends WatchUi.WatchFace {
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(cx, cy, ctrR);
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, max(1, ctrR / 2));
+        dc.fillCircle(cx, cy, mathMax(1, ctrR / 2));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -520,6 +520,10 @@ class FluxView extends WatchUi.WatchFace {
         if (condition == Weather.CONDITION_FOG)           { return "Fog"; }
         if ((Weather has :CONDITION_THUNDERSTORM) && condition == Weather.CONDITION_THUNDERSTORM) { return "Storm"; }
         return "---";
+    }
+
+    function mathMax(a as Number, b as Number) as Number {
+        return (a > b) ? a : b;
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }
