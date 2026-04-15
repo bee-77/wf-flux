@@ -1,9 +1,11 @@
 <?xml version="1.0"?>
 <resources>
-  <string id="AppName">Bokeltsen Blagen</string>
-  <string id="SettingTopLeftTitle">Oben Links</string>
-  <string id="SettingTopRightTitle">Oben Rechts</string>
-  <string id="SettingTimeStyleTitle">Uhrzeitformat</string>
-  <string id="SettingBgThemeTitle">Hintergrund</string>
-  <string id="SettingAodColorTitle">AOD Uhrzeitfarbe</string>
+  <string id="AppName">Flux</string>
+  <string id="SettingTopLeftTitle">Top Left</string>
+  <string id="SettingTopRightTitle">Top Right</string>
+  <string id="SettingBotLeftTitle">Bottom Left</string>
+  <string id="SettingBotRightTitle">Bottom Right</string>
+  <string id="SettingTimeStyleTitle">Time Format</string>
+  <string id="SettingDistUnitTitle">Distance Unit</string>
+  <string id="SettingAodColorTitle">AOD Color</string>
 </resources>

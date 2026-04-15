@@ -1,48 +1,77 @@
 <?xml version="1.0"?>
 <settings>
 
-  <!-- Top Slots -->
-  <setting propertyKey="@Properties.top_left" title="@Strings.SettingTopLeftTitle">
+  <!-- Slot options: 0=Weather, 1=Calories, 2=Steps, 3=Distance, 4=Active Min, 5=Floors, 6=Body Battery -->
+
+  <setting propertyKey="@Properties.slot_tl" title="@Strings.SettingTopLeftTitle">
     <settingConfig type="list">
-      <listEntry value="0">Wetter</listEntry>
-      <listEntry value="1">Kalorien</listEntry>
-      <listEntry value="2">Schritte</listEntry>
-      <listEntry value="3">Stockwerke</listEntry>
-      <listEntry value="4">Aktivitätszeit</listEntry>
+      <listEntry value="0">Weather</listEntry>
+      <listEntry value="1">Calories</listEntry>
+      <listEntry value="2">Steps</listEntry>
+      <listEntry value="3">Distance</listEntry>
+      <listEntry value="4">Active Min</listEntry>
+      <listEntry value="5">Floors</listEntry>
+      <listEntry value="6">Body Battery</listEntry>
     </settingConfig>
   </setting>
 
-  <setting propertyKey="@Properties.top_right" title="@Strings.SettingTopRightTitle">
+  <setting propertyKey="@Properties.slot_tr" title="@Strings.SettingTopRightTitle">
     <settingConfig type="list">
-      <listEntry value="0">Wetter</listEntry>
-      <listEntry value="1">Kalorien</listEntry>
-      <listEntry value="2">Schritte</listEntry>
-      <listEntry value="3">Stockwerke</listEntry>
-      <listEntry value="4">Aktivitätszeit</listEntry>
+      <listEntry value="0">Weather</listEntry>
+      <listEntry value="1">Calories</listEntry>
+      <listEntry value="2">Steps</listEntry>
+      <listEntry value="3">Distance</listEntry>
+      <listEntry value="4">Active Min</listEntry>
+      <listEntry value="5">Floors</listEntry>
+      <listEntry value="6">Body Battery</listEntry>
     </settingConfig>
   </setting>
 
-  <!-- Time Style -->
+  <setting propertyKey="@Properties.slot_bl" title="@Strings.SettingBotLeftTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Weather</listEntry>
+      <listEntry value="1">Calories</listEntry>
+      <listEntry value="2">Steps</listEntry>
+      <listEntry value="3">Distance</listEntry>
+      <listEntry value="4">Active Min</listEntry>
+      <listEntry value="5">Floors</listEntry>
+      <listEntry value="6">Body Battery</listEntry>
+    </settingConfig>
+  </setting>
+
+  <setting propertyKey="@Properties.slot_br" title="@Strings.SettingBotRightTitle">
+    <settingConfig type="list">
+      <listEntry value="0">Weather</listEntry>
+      <listEntry value="1">Calories</listEntry>
+      <listEntry value="2">Steps</listEntry>
+      <listEntry value="3">Distance</listEntry>
+      <listEntry value="4">Active Min</listEntry>
+      <listEntry value="5">Floors</listEntry>
+      <listEntry value="6">Body Battery</listEntry>
+    </settingConfig>
+  </setting>
+
+  <!-- Time Format -->
   <setting propertyKey="@Properties.time_style" title="@Strings.SettingTimeStyleTitle">
     <settingConfig type="list">
-      <listEntry value="0">12h (AM/PM)</listEntry>
-      <listEntry value="1">Military (24h)</listEntry>
+      <listEntry value="0">24h</listEntry>
+      <listEntry value="1">12h (AM/PM)</listEntry>
     </settingConfig>
   </setting>
 
-  <!-- Background Theme -->
-  <setting propertyKey="@Properties.bg_theme" title="@Strings.SettingBgThemeTitle">
+  <!-- Distance Unit -->
+  <setting propertyKey="@Properties.dist_unit" title="@Strings.SettingDistUnitTitle">
     <settingConfig type="list">
-      <listEntry value="0">Schwarz (AMOLED)</listEntry>
-      <listEntry value="1">Orange / Schwarz</listEntry>
+      <listEntry value="0">km</listEntry>
+      <listEntry value="1">mi</listEntry>
     </settingConfig>
   </setting>
 
-  <!-- AOD Uhrzeitfarbe -->
+  <!-- AOD Color -->
   <setting propertyKey="@Properties.aod_color" title="@Strings.SettingAodColorTitle">
     <settingConfig type="list">
-      <listEntry value="0">Orange (Standard)</listEntry>
-      <listEntry value="1">Schwarz</listEntry>
+      <listEntry value="0">Blue (Flux)</listEntry>
+      <listEntry value="1">White</listEntry>
     </settingConfig>
   </setting>
 

@@ -11,11 +11,12 @@ import Toybox.Application.Properties;
 import Toybox.Weather;
 import Toybox.Math;
 
-class SportFaceView extends WatchUi.WatchFace {
+// ─── Slot constants ──────────────────────────────────────────────────────────
+// 0=Weather  1=Calories  2=Steps  3=Distance  4=Active Min  5=Floors  6=Body Battery
 
-    var mBgBlack     as BitmapResource?;
-    var mBgLight     as BitmapResource?;
-    var mBgLoaded    as Boolean = false;
+class FluxView extends WatchUi.WatchFace {
+
+    // ── Icons ────────────────────────────────────────────────────────────────
     var mWeatherIcons   as Dictionary = {};
     var mWeatherIconsLg as Dictionary = {};
     var mHeartIcon      as BitmapResource?;
@@ -23,14 +24,33 @@ class SportFaceView extends WatchUi.WatchFace {
     var mHeartIconLg    as BitmapResource?;
     var mStepsIconLg    as BitmapResource?;
 
-    var mTheme       as Number = 0;  // 0=Black, 1=Light
-    var mWeatherCondition as Number = -1;
-    var mTimeStyle   as Number = 1;  // 0=12h, 1=Military (24h)
-    var mTopLeft     as Number = 0;  // 0=Wetter, 1=Kalorien, 2=Schritte, 3=Stockwerke, 4=Aktivitätszeit
-    var mTopRight    as Number = 2;
-    var mAodColor    as Number = 0;  // 0=Orange mit weißer Outline, 1=Schwarz mit weißer Outline
+    // ── Settings ─────────────────────────────────────────────────────────────
+    var mTimeStyle   as Number = 0;  // 0=24h  1=12h
+    var mDistUnit    as Number = 0;  // 0=km   1=mi
+    var mSlotTL      as Number = 0;  // top-left metric
+    var mSlotTR      as Number = 2;  // top-right metric
+    var mSlotBL      as Number = 3;  // bottom-left metric
+    var mSlotBR      as Number = 1;  // bottom-right metric
+    var mAodColor    as Number = 0;  // 0=Blue  1=White
 
-    var mSleeping    as Boolean = false;
+    // ── State ────────────────────────────────────────────────────────────────
+    var mWeatherCondition as Number = -1;
+    var mSleeping         as Boolean = false;
+
+    // ── Flux palette ─────────────────────────────────────────────────────────
+    // Electric blue / cyan on pure black — inspired by the Flux Capacitor
+    var C_BG       as Number = 0x000000;
+    var C_TIME     as Number = 0xFFFFFF;
+    var C_FLUX     as Number = 0x00BBFF;  // electric blue
+    var C_FLUX_DIM as Number = 0x003355;  // dark glow
+    var C_AMBER    as Number = 0xFFCC00;  // capacitor dot glow
+    var C_PRIMARY  as Number = 0x00BBFF;
+    var C_MUTED    as Number = 0x778899;
+    var C_LABEL    as Number = 0x4466AA;
+    var C_DIVIDER  as Number = 0x1A3355;
+    var C_BAT_OK   as Number = 0x00CC66;
+    var C_BAT_MID  as Number = 0xFFAA00;
+    var C_BAT_LOW  as Number = 0xFF3333;
 
     function initialize() {
         WatchFace.initialize();
@@ -41,237 +61,323 @@ class SportFaceView extends WatchUi.WatchFace {
     }
 
     function loadSettings() as Void {
-        var prevTheme = mTheme;
-        var theme = Properties.getValue("bg_theme");
-        if (theme != null) { mTheme = theme as Number; }
-        var ts = Properties.getValue("time_style"); if (ts != null) { mTimeStyle = ts as Number; }
-        var tl = Properties.getValue("top_left");   if (tl != null) { mTopLeft = tl as Number; }
-        var tr = Properties.getValue("top_right");  if (tr != null) { mTopRight = tr as Number; }
-        var ac = Properties.getValue("aod_color");  if (ac != null) { mAodColor = ac as Number; }
-        // Theme gewechselt → anderen Background nachladen
-        if (mTheme != prevTheme) {
-            mBgLoaded = false;
-            mBgBlack  = null;
-            mBgLight  = null;
-        }
+        var v;
+        v = Properties.getValue("time_style");  if (v != null) { mTimeStyle = v as Number; }
+        v = Properties.getValue("dist_unit");   if (v != null) { mDistUnit  = v as Number; }
+        v = Properties.getValue("slot_tl");     if (v != null) { mSlotTL   = v as Number; }
+        v = Properties.getValue("slot_tr");     if (v != null) { mSlotTR   = v as Number; }
+        v = Properties.getValue("slot_bl");     if (v != null) { mSlotBL   = v as Number; }
+        v = Properties.getValue("slot_br");     if (v != null) { mSlotBR   = v as Number; }
+        v = Properties.getValue("aod_color");   if (v != null) { mAodColor = v as Number; }
     }
 
-    function getThemeColors() as Dictionary {
-        if (mTheme == 1) {
-            // Orange-Hintergrund: alle Texte/Icons weiß
-            return {
-                "time"     => 0xFFFFFF, "primary"  => 0xFFFFFF,
-                "secondary"=> 0xFFE0CC, "divider"  => 0xFFFFFF,
-                "slogan"   => 0xFFFFFF, "muted"    => 0xDDDDDD,
-                "divider2" => 0xFF9944, "label"    => 0xFFFFFF
-            };
-        } else {
-            return {
-                "time"     => 0xFFFFFF, "primary"  => 0xFFFFFF,
-                "secondary"=> 0xFFE0CC, "divider"  => 0xFF6600,
-                "slogan"   => 0xFF6600, "muted"    => 0xDDDDDD,
-                "divider2" => 0x333333, "label"    => 0xFFFFFF
-            };
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────────────────────
+    //  MAIN UPDATE
+    // ─────────────────────────────────────────────────────────────────────────
     function onUpdate(dc as Dc) as Void {
         var w  = dc.getWidth();
-        var dh = dc.getHeight();
+        var h  = dc.getHeight();
         var cx = w / 2;
-        var cy = dh / 2;
+        var cy = h / 2;
+        var lg = (w >= 390);
 
-        // Nur den aktiven Theme-Background laden (gerätespezifisch via monkey.jungle)
-        if (!mBgLoaded) {
-            mBgLoaded = true;
-            if (mTheme == 1) {
-                try { mBgLight = WatchUi.loadResource(Rez.Drawables.bg_light) as BitmapResource; } catch (ex) {}
-            } else {
-                try { mBgBlack = WatchUi.loadResource(Rez.Drawables.bg_black) as BitmapResource; } catch (ex) {}
+        // Load icons on first frame
+        if (mWeatherIcons.size() == 0) { loadWeatherIcons(lg); }
+        if (mHeartIcon == null) {
+            try { mHeartIcon = WatchUi.loadResource(Rez.Drawables.ic_heart) as BitmapResource; } catch (ex) {}
+        }
+        if (mStepsIcon == null) {
+            try { mStepsIcon = WatchUi.loadResource(Rez.Drawables.ic_steps) as BitmapResource; } catch (ex) {}
+        }
+        if (lg) {
+            if (mHeartIconLg == null) {
+                try { mHeartIconLg = WatchUi.loadResource(Rez.Drawables.ic_heart_lg) as BitmapResource; } catch (ex) {}
+            }
+            if (mStepsIconLg == null) {
+                try { mStepsIconLg = WatchUi.loadResource(Rez.Drawables.ic_steps_lg) as BitmapResource; } catch (ex) {}
             }
         }
-        var useLarge = (w >= 390);
-        if (mWeatherIcons.size() == 0) { loadWeatherIcons(useLarge); }
-        if (mHeartIcon == null) { try { mHeartIcon = WatchUi.loadResource(Rez.Drawables.ic_heart) as BitmapResource; } catch (ex) {} }
-        if (mStepsIcon == null) { try { mStepsIcon = WatchUi.loadResource(Rez.Drawables.ic_steps) as BitmapResource; } catch (ex) {} }
-        if (useLarge) {
-            if (mHeartIconLg == null) { try { mHeartIconLg = WatchUi.loadResource(Rez.Drawables.ic_heart_lg) as BitmapResource; } catch (ex) {} }
-            if (mStepsIconLg == null) { try { mStepsIconLg = WatchUi.loadResource(Rez.Drawables.ic_steps_lg) as BitmapResource; } catch (ex) {} }
-        }
-
-        var colors = getThemeColors();
 
         if (mSleeping) {
-            drawSleepScreen(dc, cx, dh);
+            drawSleepScreen(dc, w, h, cx, cy);
             return;
         }
 
-        // Hintergrundfarbe solide füllen
-        if (mTheme == 1) {
-            dc.setColor(0xFF6600, 0xFF6600);
-        } else {
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        }
+        // ── Background ───────────────────────────────────────────────────────
+        dc.setColor(C_BG, C_BG);
         dc.clear();
 
-        // Logo-Bitmap zeichnen
-        var bg = (mTheme == 1) ? mBgLight : mBgBlack;
-        if (bg != null) {
-            dc.drawBitmap(0, 0, bg);
+        // ── Bezel ────────────────────────────────────────────────────────────
+        drawBezel(dc, w, h, cx, cy);
+
+        // ── Compute vertical layout ──────────────────────────────────────────
+        var clockTime = System.getClockTime();
+        var timeStr   = buildTimeString(clockTime);
+        var tinyH     = 14;
+        var timeH     = 60;
+        try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
+        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number; } catch (ex) {}
+        var pad = h * 2 / 100;
+
+        // Time: slightly above center
+        var yTime    = cy - timeH / 2 - h * 3 / 100;
+        var yTopSlot = yTime - tinyH * 2 - pad * 2;
+        var lblOff   = tinyH + pad;
+        var yInfoRow = yTime + timeH + pad;
+        var yFlux    = yInfoRow + tinyH + pad * 3;
+        var yBotSlot = h * 76 / 100;
+
+        // ── Top slots ────────────────────────────────────────────────────────
+        drawSlotPair(dc, cx, w, yTopSlot, lblOff, mSlotTL, mSlotTR);
+
+        // ── Time (with blue glow) ────────────────────────────────────────────
+        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(C_TIME, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        if (mTimeStyle == 1) {
+            var ampm = (clockTime.hour < 12) ? "AM" : "PM";
+            dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yTime + timeH + 2, Graphics.FONT_XTINY, ampm, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // === Dekorative Lünette (äußerer Ring) ===
-        var bezelColor = (mTheme == 1) ? 0xCC5500 : 0x332200;
-        dc.setColor(bezelColor, Graphics.COLOR_TRANSPARENT);
+        // ── Info row: Date | HR | Battery ───────────────────────────────────
+        drawInfoRow(dc, cx, w, yInfoRow, tinyH, lg);
+
+        // ── Flux Capacitor decoration ────────────────────────────────────────
+        drawFluxCapacitor(dc, cx, yFlux, w * 9 / 100);
+
+        // ── Bottom slots ─────────────────────────────────────────────────────
+        drawSlotPair(dc, cx, w, yBotSlot, lblOff, mSlotBL, mSlotBR);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  BEZEL
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawBezel(dc as Dc, w as Number, h as Number, cx as Number, cy as Number) as Void {
+        // Outer ring
+        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawArc(cx, cy, cx - w * 2 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
-        var innerRing = (mTheme == 1) ? 0xFF8833 : 0x553300;
-        dc.setColor(innerRing, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
         dc.drawArc(cx, cy, cx - w * 3 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
 
-        // === Tick-Marks ===
-        var tickColor = (mTheme == 1) ? 0xFFFFFF : 0xFF6600;
-        dc.setColor(tickColor, Graphics.COLOR_TRANSPARENT);
+        // Cardinal tick marks (12, 3, 6, 9 o'clock)
+        dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         var te = w * 1 / 100;
         var tl = w * 4 / 100;
-        dc.drawLine(cx, te, cx, tl);
-        dc.drawLine(cx, w - tl, cx, w - te);
-        dc.drawLine(te, cy, tl, cy);
+        dc.drawLine(cx, te,     cx, tl);
+        dc.drawLine(cx, h - tl, cx, h - te);
+        dc.drawLine(te, cy,     tl, cy);
         dc.drawLine(w - tl, cy, w - te, cy);
+
+        // Minor tick marks
         dc.setPenWidth(1);
+        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
         var r1 = cx - w * 2 / 100;
         var r2 = cx - w * 4 / 100;
         for (var angle = 30; angle < 360; angle += 30) {
             if (angle == 90 || angle == 180 || angle == 270 || angle == 0) { continue; }
-            var rad = angle * 0.01745329f;
-            var sinA = Toybox.Math.sin(rad);
-            var cosA = Toybox.Math.cos(rad);
-            var x1 = cx + (r1 * sinA).toNumber();
-            var y1 = cy - (r1 * cosA).toNumber();
-            var x2 = cx + (r2 * sinA).toNumber();
-            var y2 = cy - (r2 * cosA).toNumber();
-            dc.drawLine(x1, y1, x2, y2);
+            var rad  = angle * 0.01745329f;
+            var sinA = Math.sin(rad).toFloat();
+            var cosA = Math.cos(rad).toFloat();
+            dc.drawLine(
+                cx + (r1 * sinA).toNumber(), cy - (r1 * cosA).toNumber(),
+                cx + (r2 * sinA).toNumber(), cy - (r2 * cosA).toNumber()
+            );
         }
-
-        // ── LAYOUT ──────────────────────────────────────────────────────────────
-        // 1. Wetter/Schritte (Slots)  2. Uhrzeit (zentral)  3. Datum+HR  4. Slogan
-        var clockTime = System.getClockTime();
-        var timeStr = "";
-        if (mTimeStyle == 0) {
-            var hr = clockTime.hour % 12;
-            if (hr == 0) { hr = 12; }
-            timeStr = hr.format("%d") + ":" + clockTime.min.format("%02d");
-        } else {
-            timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
-        }
-        var tinyH = 14;
-        var timeH = 60;
-        try { tinyH = (dc.getTextDimensions("Mi", Graphics.FONT_XTINY))[1]         as Number; } catch (ex) {}
-        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number; } catch (ex) {}
-        var pad   = dh * 2 / 100;
-
-        // Uhrzeit vertikal zentrieren (leicht nach oben versetzt)
-        var yTime    = cy - timeH / 2 - dh * 4 / 100;
-        var yTopSlot = yTime - tinyH * 2 - pad;
-        var lblOff   = tinyH + pad;
-        var yDateHr  = yTime + timeH + pad;
-        var ySlog1   = dh * 76 / 100;
-        var ySlog2   = ySlog1 + tinyH;
-        var dotY     = ySlog1 - pad;
-
-        // Top-Slots (Wetter + Schritte)
-        drawTopSlots(dc, cx, colors, w, yTopSlot, lblOff);
-
-        // Uhrzeit (mit Glow — auf Orange-Theme dunkler Schatten)
-        var glowColor = (mTheme == 1) ? 0x552200 : 0xFF6600;
-        dc.setColor(glowColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(colors["time"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        if (mTimeStyle == 0) {
-            var ampm = (clockTime.hour < 12) ? "AM" : "PM";
-            dc.setColor(colors["secondary"] as Number, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, yTime + timeH + pad / 2, Graphics.FONT_XTINY, ampm, Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // Datum + Herzfrequenz + Akku — als Block zentriert
-        var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
-        var hrVal    = "--";
-        try {
-            var hrInfo = Activity.getActivityInfo();
-            if (hrInfo != null && (hrInfo has :currentHeartRate) && hrInfo.currentHeartRate != null && (hrInfo.currentHeartRate as Number) > 0) {
-                hrVal = (hrInfo.currentHeartRate as Number).toString();
-            }
-        } catch (ex) {}
-        var batPct   = 0;
-        try { batPct = System.getSystemStats().battery.toNumber(); } catch (ex) {}
-
-        var heartW   = (w >= 390) ? 24 : 18;
-        var batBarW  = w * 5 / 100;
-        var iGap     = w * 2 / 100;  // innerer Abstand zwischen Elementen
-        var bpmStr   = hrVal + " bpm";
-        var batPctStr = batPct.format("%d") + "%";
-
-        // Gesamtbreite messen → Block zentrieren
-        var dateW    = (dc.getTextDimensions(dateStr,   Graphics.FONT_XTINY))[0] as Number;
-        var bpmW     = (dc.getTextDimensions(bpmStr,    Graphics.FONT_XTINY))[0] as Number;
-        var batPctW  = (dc.getTextDimensions(batPctStr, Graphics.FONT_XTINY))[0] as Number;
-        var totalW   = dateW + iGap + heartW + 2 + bpmW + iGap + batBarW + 2 + iGap + batPctW;
-        var startX   = cx - totalW / 2;
-
-        // Positionen
-        var xDate    = startX;
-        var xHeart   = xDate  + dateW + iGap;
-        var xBpm     = xHeart + heartW + 2;
-        var xBatBar  = xBpm   + bpmW  + iGap;
-        var xBatPct  = xBatBar + batBarW + 2 + iGap;
-        var batY     = yDateHr + (tinyH - 8) / 2;
-
-        // Datum
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xDate, yDateHr, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Herzfrequenz
-        var heartIcon = (w >= 390 && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
-        if (heartIcon != null) { dc.drawBitmap(xHeart, yDateHr + 1, heartIcon as BitmapResource); }
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xBpm, yDateHr, Graphics.FONT_XTINY, bpmStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Akkubalken
-        var batColor = (batPct > 50) ? 0x00AA00 : ((batPct > 20) ? 0xFF9900 : 0xCC0000);
-        var fillW    = batBarW * batPct / 100;
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawRectangle(xBatBar, batY, batBarW, 8);
-        dc.fillRectangle(xBatBar + batBarW, batY + 2, 2, 4);
-        dc.setColor(batColor, Graphics.COLOR_TRANSPARENT);
-        if (fillW > 0) { dc.fillRectangle(xBatBar + 1, batY + 1, fillW - 1, 6); }
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xBatPct, yDateHr, Graphics.FONT_XTINY, batPctStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Slogan
-        dc.setColor(colors["divider"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx - w * 21 / 100, dotY, 2);
-        dc.fillCircle(cx + w * 21 / 100, dotY, 2);
-        dc.setColor(colors["slogan"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, ySlog1, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, ySlog2, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function getTopSlotData(slot as Number) as Array {
+    // ─────────────────────────────────────────────────────────────────────────
+    //  FLUX CAPACITOR (Y-shape)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawFluxCapacitor(dc as Dc, cx as Number, cy as Number, armLen as Number) as Void {
+        // Three arms at 0° (up), 120° (lower-right), 240° (lower-left)
+        // Garmin convention: angle 0 = 12 o'clock, clockwise
+        // x = cx + armLen * sin(rad)
+        // y = cy - armLen * cos(rad)
+        var angles = [0, 120, 240] as Array<Number>;
+        var endX   = new Array<Number>[3];
+        var endY   = new Array<Number>[3];
+
+        for (var i = 0; i < 3; i++) {
+            var rad  = angles[i] * 0.01745329f;
+            var sinA = Math.sin(rad).toFloat();
+            var cosA = Math.cos(rad).toFloat();
+            endX[i]  = cx + (armLen * sinA).toNumber();
+            endY[i]  = cy - (armLen * cosA).toNumber();
+        }
+
+        // Glow halo (thick, dark blue)
+        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(4);
+        for (var i = 0; i < 3; i++) {
+            dc.drawLine(cx, cy, endX[i], endY[i]);
+        }
+
+        // Core line (thin, bright blue)
+        dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        for (var i = 0; i < 3; i++) {
+            dc.drawLine(cx, cy, endX[i], endY[i]);
+        }
+
+        // Endpoint glow dots (amber — capacitor charge points)
+        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < 3; i++) {
+            dc.fillCircle(endX[i], endY[i], 5);
+        }
+        dc.setColor(C_AMBER, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < 3; i++) {
+            dc.fillCircle(endX[i], endY[i], 3);
+        }
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < 3; i++) {
+            dc.fillCircle(endX[i], endY[i], 1);
+        }
+
+        // Center glow
+        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 6);
+        dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 4);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, 2);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  INFO ROW  (Date | Heart | Battery)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawInfoRow(dc as Dc, cx as Number, w as Number, y as Number, tinyH as Number, lg as Boolean) as Void {
+        var now     = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var dateStr = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
+
+        var hrVal = "--";
+        try {
+            var hrInfo = Activity.getActivityInfo();
+            if (hrInfo != null && (hrInfo has :currentHeartRate) && hrInfo.currentHeartRate != null) {
+                var hr = hrInfo.currentHeartRate as Number;
+                if (hr > 0) { hrVal = hr.toString(); }
+            }
+        } catch (ex) {}
+
+        var batPct = 0;
+        try { batPct = System.getSystemStats().battery.toNumber(); } catch (ex) {}
+
+        var heartW   = lg ? 24 : 18;
+        var batBarW  = w * 5 / 100;
+        var gap      = w * 2 / 100;
+        var bpmStr   = hrVal + " bpm";
+        var batStr   = batPct.format("%d") + "%";
+
+        var dateW   = (dc.getTextDimensions(dateStr, Graphics.FONT_XTINY))[0] as Number;
+        var bpmW    = (dc.getTextDimensions(bpmStr,  Graphics.FONT_XTINY))[0] as Number;
+        var batW    = (dc.getTextDimensions(batStr,  Graphics.FONT_XTINY))[0] as Number;
+        var totalW  = dateW + gap + heartW + 2 + bpmW + gap + batBarW + 4 + gap + batW;
+        var x       = cx - totalW / 2;
+
+        // Date
+        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
+        x += dateW + gap;
+
+        // Heart icon + bpm
+        var hIcon = (lg && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
+        if (hIcon != null) { dc.drawBitmap(x, y + 1, hIcon as BitmapResource); }
+        x += heartW + 2;
+        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, bpmStr, Graphics.TEXT_JUSTIFY_LEFT);
+        x += bpmW + gap;
+
+        // Battery bar
+        var batColor = (batPct > 50) ? C_BAT_OK : ((batPct > 20) ? C_BAT_MID : C_BAT_LOW);
+        var batY     = y + (tinyH - 8) / 2;
+        var fillW    = batBarW * batPct / 100;
+        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawRectangle(x, batY, batBarW, 8);
+        dc.fillRectangle(x + batBarW, batY + 2, 2, 4);
+        if (fillW > 0) {
+            dc.setColor(batColor, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x + 1, batY + 1, fillW - 1, 6);
+        }
+        x += batBarW + 4 + gap;
+
+        // Battery %
+        dc.setColor(batColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, batStr, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SLOT PAIR (left + right, with divider)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawSlotPair(dc as Dc, cx as Number, sw as Number, yTop as Number,
+                          lblOff as Number, slotL as Number, slotR as Number) as Void {
+        var dataL = getSlotData(slotL);
+        var dataR = getSlotData(slotR);
+        var margin = sw * 4 / 100;
+        var iconOff = sw * 20 / 100;
+
+        // Divider line
+        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(cx, yTop - 2, cx, yTop + lblOff + 16);
+
+        // Left slot (right-aligned to divider)
+        var lGoalColor = (dataL.size() > 2 && dataL[2] != null) ? dataL[2] as Number : -1;
+        var lColor     = (lGoalColor != -1) ? lGoalColor : C_PRIMARY;
+        dc.setColor(lColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx - margin, yTop, Graphics.FONT_XTINY, dataL[0] as String, Graphics.TEXT_JUSTIFY_RIGHT);
+        var lLbl = dataL[1] as String;
+        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx - margin, yTop + lblOff, Graphics.FONT_XTINY, lLbl, Graphics.TEXT_JUSTIFY_RIGHT);
+        // Strike-through label if goal reached
+        if (lGoalColor != -1 && !lLbl.equals("")) {
+            var d = dc.getTextDimensions(lLbl, Graphics.FONT_XTINY);
+            var ly = yTop + lblOff + (d[1] as Number) / 2;
+            dc.setPenWidth(1);
+            dc.drawLine(cx - margin - (d[0] as Number), ly, cx - margin, ly);
+        }
+        // Icon left of value
+        drawSlotIcon(dc, slotL, cx - iconOff, yTop + 2);
+
+        // Right slot (left-aligned from divider)
+        var rIconW    = drawSlotIcon(dc, slotR, cx + margin, yTop + 2);
+        var rGoalColor = (dataR.size() > 2 && dataR[2] != null) ? dataR[2] as Number : -1;
+        var rColor     = (rGoalColor != -1) ? rGoalColor : C_PRIMARY;
+        dc.setColor(rColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx + margin + rIconW, yTop, Graphics.FONT_XTINY, dataR[0] as String, Graphics.TEXT_JUSTIFY_LEFT);
+        var rLbl = dataR[1] as String;
+        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx + margin + rIconW, yTop + lblOff, Graphics.FONT_XTINY, rLbl, Graphics.TEXT_JUSTIFY_LEFT);
+        if (rGoalColor != -1 && !rLbl.equals("")) {
+            var d = dc.getTextDimensions(rLbl, Graphics.FONT_XTINY);
+            var ry = yTop + lblOff + (d[1] as Number) / 2;
+            dc.setPenWidth(1);
+            dc.drawLine(cx + margin + rIconW, ry, cx + margin + rIconW + (d[0] as Number), ry);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SLOT DATA
+    //  Returns Array: [valueStr, labelStr] or [valueStr, labelStr, goalColor?]
+    // ─────────────────────────────────────────────────────────────────────────
+    function getSlotData(slot as Number) as Array {
+        // 0 — Weather
         if (slot == 0) {
-            var tempStr = "--"; var condStr = "";
+            var tempStr = "--";
+            var condStr = "";
             mWeatherCondition = -1;
             try {
                 var cond = Weather.getCurrentConditions();
                 if (cond != null) {
-                    if (cond.temperature != null) { tempStr = cond.temperature.format("%d") + "C"; }
-                    if (cond.condition  != null)  {
+                    if (cond.temperature != null) {
+                        tempStr = (cond.temperature as Number).format("%d") + "°";
+                    }
+                    if (cond.condition != null) {
                         mWeatherCondition = cond.condition as Number;
                         condStr = weatherLabel(mWeatherCondition);
                     }
@@ -279,103 +385,156 @@ class SportFaceView extends WatchUi.WatchFace {
             } catch (ex) {}
             return [tempStr, condStr] as Array;
         }
-        var actInfo = ActivityMonitor.getInfo();
+
+        var act = ActivityMonitor.getInfo();
+
+        // 1 — Calories
         if (slot == 1) {
-            var calStr = "--";
-            if (actInfo has :calories && actInfo.calories != null) { calStr = actInfo.calories.toString(); }
-            return [calStr, "KCAL"] as Array;
-        } else if (slot == 2) {
-            var stepStr = "--";
+            var s = "--";
+            if (act has :calories && act.calories != null) { s = (act.calories as Number).toString(); }
+            return [s, "KCAL"] as Array;
+        }
+
+        // 2 — Steps
+        if (slot == 2) {
             var steps = 0;
-            if (actInfo has :steps && actInfo.steps != null) {
-                steps = actInfo.steps as Number;
+            var stepStr = "--";
+            if (act has :steps && act.steps != null) {
+                steps = act.steps as Number;
                 stepStr = steps.toString();
             }
-            var goalStr = "";
+            var goalStr   = "";
             var goalColor = null;
-            if (actInfo has :stepGoal && actInfo.stepGoal != null) {
-                var goal = actInfo.stepGoal as Number;
+            if (act has :stepGoal && act.stepGoal != null) {
+                var goal = act.stepGoal as Number;
                 goalStr = "/ " + goal.toString();
-                if (steps > 0 && steps >= goal) { goalColor = 0x00AA00; }
+                if (steps > 0 && steps >= goal) { goalColor = C_BAT_OK; }
             }
             return [stepStr, goalStr, goalColor] as Array;
-        } else if (slot == 3) {
-            var floorStr = "--";
-            if (actInfo has :floorsClimbed && actInfo.floorsClimbed != null) { floorStr = actInfo.floorsClimbed.toString(); }
-            return [floorStr, "FLOORS"] as Array;
-        } else {
-            var minStr = "--";
-            if (actInfo has :activeMinutesDay && actInfo.activeMinutesDay != null) {
-                var amd = actInfo.activeMinutesDay;
-                if (amd has :total && amd.total != null) { minStr = amd.total.toString(); }
+        }
+
+        // 3 — Distance
+        if (slot == 3) {
+            var distStr = "--";
+            if (act has :distance && act.distance != null) {
+                var cm = act.distance as Number;  // centimetres
+                if (mDistUnit == 1) {
+                    // miles
+                    var mi = cm / 160934.0f;
+                    distStr = mi.format("%.2f");
+                } else {
+                    // km
+                    var km = cm / 100000.0f;
+                    distStr = km.format("%.2f");
+                }
             }
-            return [minStr, "ACT.MIN"] as Array;
+            var unit = (mDistUnit == 1) ? "MI" : "KM";
+            return [distStr, unit] as Array;
         }
+
+        // 4 — Active Minutes
+        if (slot == 4) {
+            var s = "--";
+            if (act has :activeMinutesDay && act.activeMinutesDay != null) {
+                var amd = act.activeMinutesDay;
+                if (amd has :total && amd.total != null) { s = (amd.total as Number).toString(); }
+            }
+            return [s, "ACT.MIN"] as Array;
+        }
+
+        // 5 — Floors
+        if (slot == 5) {
+            var s = "--";
+            if (act has :floorsClimbed && act.floorsClimbed != null) {
+                s = (act.floorsClimbed as Number).toString();
+            }
+            return [s, "FLOORS"] as Array;
+        }
+
+        // 6 — Body Battery
+        if (slot == 6) {
+            var s = "--";
+            try {
+                if ((Toybox has :SensorHistory) && (Toybox.SensorHistory has :getBodyBatteryHistory)) {
+                    var hist = Toybox.SensorHistory.getBodyBatteryHistory({:period => 1});
+                    if (hist != null) {
+                        var sample = hist.next();
+                        if (sample != null && sample.data != null) {
+                            s = (sample.data as Number).format("%d");
+                        }
+                    }
+                }
+            } catch (ex) {}
+            return [s, "BODY BAT"] as Array;
+        }
+
+        return ["--", ""] as Array;
     }
 
-    function drawTopSlots(dc as Dc, cx as Number, colors as Dictionary, sw as Number, yTop as Number, lblOff as Number) as Void {
-        var leftData  = getTopSlotData(mTopLeft);
-        var rightData = getTopSlotData(mTopRight);
-        var xOff = sw * 22 / 100;
-
-        // Linker Slot (rechtsbündig zur Trennlinie)
-        var lMargin = sw * 4 / 100;
-        var goalReachedL = (leftData.size() > 2 && leftData[2] != null);
-        var leftColor = goalReachedL ? leftData[2] as Number : colors["time"] as Number;
-        dc.setColor(leftColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - lMargin, yTop, Graphics.FONT_XTINY, leftData[0] as String, Graphics.TEXT_JUSTIFY_RIGHT);
-        var lLabel = leftData[1] as String;
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - lMargin, yTop + lblOff, Graphics.FONT_XTINY, lLabel, Graphics.TEXT_JUSTIFY_RIGHT);
-        if (goalReachedL && !lLabel.equals("")) {
-            var dims = dc.getTextDimensions(lLabel, Graphics.FONT_XTINY);
-            var ly = yTop + lblOff + (dims[1] as Number) / 2;
-            dc.setPenWidth(1);
-            dc.drawLine(cx - lMargin - (dims[0] as Number), ly, cx - lMargin, ly);
-        }
-        // Icon links vor dem Text
-        drawSlotIcon(dc, mTopLeft, cx - xOff, yTop + 2);
-
-        // Trennlinie
-        dc.setColor(colors["divider2"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawLine(cx, yTop - 2, cx, yTop + lblOff + 16);
-
-        // Rechter Slot
-        var rOff = sw * 8 / 100;
-        var iconW2 = drawSlotIcon(dc, mTopRight, cx + rOff, yTop + 2);
-        var goalReachedR = (rightData.size() > 2 && rightData[2] != null);
-        var rightColor = goalReachedR ? rightData[2] as Number : colors["time"] as Number;
-        dc.setColor(rightColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + rOff + iconW2, yTop, Graphics.FONT_XTINY, rightData[0] as String, Graphics.TEXT_JUSTIFY_LEFT);
-        var rLabel = rightData[1] as String;
-        dc.setColor(colors["muted"] as Number, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + rOff + iconW2, yTop + lblOff, Graphics.FONT_XTINY, rLabel, Graphics.TEXT_JUSTIFY_LEFT);
-        if (goalReachedR && !rLabel.equals("")) {
-            var dims = dc.getTextDimensions(rLabel, Graphics.FONT_XTINY);
-            var ry = yTop + lblOff + (dims[1] as Number) / 2;
-            dc.setPenWidth(1);
-            dc.drawLine(cx + rOff + iconW2, ry, cx + rOff + iconW2 + (dims[0] as Number), ry);
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SLOT ICON  — returns icon width so caller can offset text
+    // ─────────────────────────────────────────────────────────────────────────
     function drawSlotIcon(dc as Dc, slot as Number, x as Number, y as Number) as Number {
-        var large = (dc.getWidth() >= 390);
+        var lg = (dc.getWidth() >= 390);
         if (slot == 0 && mWeatherCondition >= 0) {
-            var wIcon = large ? getWeatherIconLg(mWeatherCondition) : getWeatherIcon(mWeatherCondition);
+            var wIcon = lg ? getWeatherIconLg(mWeatherCondition) : getWeatherIcon(mWeatherCondition);
             if (wIcon == null) { wIcon = getWeatherIcon(mWeatherCondition); }
             if (wIcon != null) {
                 dc.drawBitmap(x, y, wIcon as BitmapResource);
-                return large ? 30 : 20;
+                return lg ? 30 : 20;
             }
         } else if (slot == 2) {
-            var icon = large ? mStepsIconLg : mStepsIcon;
+            var icon = (lg && mStepsIconLg != null) ? mStepsIconLg : mStepsIcon;
             if (icon != null) {
                 dc.drawBitmap(x, y + 2, icon as BitmapResource);
-                return large ? 24 : 16;
+                return lg ? 24 : 16;
             }
         }
         return 0;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SLEEP SCREEN (AOD)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawSleepScreen(dc as Dc, w as Number, h as Number, cx as Number, cy as Number) as Void {
+        dc.setColor(C_BG, C_BG);
+        dc.clear();
+
+        var clockTime = System.getClockTime();
+        var timeStr   = buildTimeString(clockTime);
+        var yTime     = h * 35 / 100;
+
+        // Outline (1px offset, white)
+        dc.setColor(0x001133, Graphics.COLOR_TRANSPARENT);
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) { continue; }
+                dc.drawText(cx + dx, yTime + dy, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+            }
+        }
+
+        // Fill color
+        var aodFill = (mAodColor == 1) ? 0xFFFFFF : C_FLUX;
+        dc.setColor(aodFill, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Tiny flux capacitor in AOD
+        var tinyH = 14;
+        try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
+        var yFlux = h * 65 / 100;
+        drawFluxCapacitor(dc, cx, yFlux, w * 6 / 100);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────────────────────────────────
+    function buildTimeString(clockTime as ClockTime) as String {
+        if (mTimeStyle == 1) {
+            var hr = clockTime.hour % 12;
+            if (hr == 0) { hr = 12; }
+            return hr.format("%d") + ":" + clockTime.min.format("%02d");
+        }
+        return clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
     }
 
     function loadWeatherIcons(useLarge as Boolean) as Void {
@@ -406,67 +565,24 @@ class SportFaceView extends WatchUi.WatchFace {
     }
 
     function getWeatherIcon(condition as Number) as BitmapResource? {
-        if (mWeatherIcons.hasKey(condition)) {
-            return mWeatherIcons[condition] as BitmapResource;
-        }
+        if (mWeatherIcons.hasKey(condition)) { return mWeatherIcons[condition] as BitmapResource; }
         return null;
     }
 
     function getWeatherIconLg(condition as Number) as BitmapResource? {
-        if (mWeatherIconsLg.hasKey(condition)) {
-            return mWeatherIconsLg[condition] as BitmapResource;
-        }
+        if (mWeatherIconsLg.hasKey(condition)) { return mWeatherIconsLg[condition] as BitmapResource; }
         return null;
     }
 
     function weatherLabel(condition as Number) as String {
-        if (condition == Weather.CONDITION_CLEAR)         { return "Klar"; }
-        if (condition == Weather.CONDITION_PARTLY_CLOUDY) { return "Wolkig"; }
-        if (condition == Weather.CONDITION_CLOUDY)        { return "Bedeckt"; }
-        if (condition == Weather.CONDITION_RAIN)          { return "Regen"; }
-        if (condition == Weather.CONDITION_SNOW)          { return "Schnee"; }
-        if (condition == Weather.CONDITION_FOG)           { return "Nebel"; }
-        if ((Weather has :CONDITION_THUNDERSTORM) && condition == Weather.CONDITION_THUNDERSTORM) { return "Gewitter"; }
+        if (condition == Weather.CONDITION_CLEAR)         { return "Clear"; }
+        if (condition == Weather.CONDITION_PARTLY_CLOUDY) { return "Partly Cloudy"; }
+        if (condition == Weather.CONDITION_CLOUDY)        { return "Cloudy"; }
+        if (condition == Weather.CONDITION_RAIN)          { return "Rain"; }
+        if (condition == Weather.CONDITION_SNOW)          { return "Snow"; }
+        if (condition == Weather.CONDITION_FOG)           { return "Fog"; }
+        if ((Weather has :CONDITION_THUNDERSTORM) && condition == Weather.CONDITION_THUNDERSTORM) { return "Storm"; }
         return "---";
-    }
-
-    function drawSleepScreen(dc as Dc, cx as Number, h as Number) as Void {
-        // Schwarzer Hintergrund (AMOLED-optimiert)
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-
-        // Uhrzeit — weiß mit Kontur (1px dunkler Schatten rundum → Tiefe + Lesbarkeit)
-        var clockTime = System.getClockTime();
-        var timeStr = "";
-        if (mTimeStyle == 0) {
-            var hr = clockTime.hour % 12;
-            if (hr == 0) { hr = 12; }
-            timeStr = hr.format("%d") + ":" + clockTime.min.format("%02d");
-        } else {
-            timeStr = clockTime.hour.format("%02d") + ":" + clockTime.min.format("%02d");
-        }
-        var yTime = h * 35 / 100;
-        // Weiße Kontur (1px rundum), Füllung per Einstellung
-        var aodFill = (mAodColor == 1) ? Graphics.COLOR_BLACK : 0xFF6600;
-        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx + 1, yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(aodFill, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Slogan — weiß mit Kontur
-        var tinyH = 14;
-        try { tinyH = (dc.getTextDimensions("Mi", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
-        var ySlog1 = h * 76 / 100;
-        var ySlog2 = ySlog1 + tinyH;
-        dc.setColor(0x444444, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, ySlog1 + 1, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, ySlog2 + 1, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, ySlog1, Graphics.FONT_XTINY, "ALLES KANN.",  Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, ySlog2, Graphics.FONT_XTINY, "NICHTS MUSS!", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }

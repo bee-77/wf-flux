@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<resources>
+  <string id="AppName">Flux</string>
+  <string id="SettingTopLeftTitle">Oben Links</string>
+  <string id="SettingTopRightTitle">Oben Rechts</string>
+  <string id="SettingBotLeftTitle">Unten Links</string>
+  <string id="SettingBotRightTitle">Unten Rechts</string>
+  <string id="SettingTimeStyleTitle">Uhrzeitformat</string>
+  <string id="SettingDistUnitTitle">Distanzeinheit</string>
+  <string id="SettingAodColorTitle">AOD Farbe</string>
+</resources>

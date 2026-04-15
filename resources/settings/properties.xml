@@ -1,15 +1,17 @@
 <?xml version="1.0"?>
 <properties>
-  <!-- Background Theme: 0=Schwarz (AMOLED), 1=Hell -->
-  <property id="bg_theme" type="number">0</property>
+  <!-- Slot options: 0=Weather, 1=Calories, 2=Steps, 3=Distance, 4=Active Min, 5=Floors, 6=Body Battery -->
+  <property id="slot_tl" type="number">0</property>
+  <property id="slot_tr" type="number">2</property>
+  <property id="slot_bl" type="number">3</property>
+  <property id="slot_br" type="number">1</property>
 
-  <!-- Time Style: 0=12h, 1=Military (24h) -->
-  <property id="time_style" type="number">1</property>
+  <!-- Time Format: 0=24h, 1=12h -->
+  <property id="time_style" type="number">0</property>
 
-  <!-- Top Slots: 0=Wetter, 1=Kalorien, 2=Schritte, 3=Stockwerke, 4=Aktivitätszeit -->
-  <property id="top_left"  type="number">0</property>
-  <property id="top_right" type="number">2</property>
+  <!-- Distance Unit: 0=km, 1=mi -->
+  <property id="dist_unit" type="number">0</property>
 
-  <!-- AOD Time Color: 0=Orange mit weißer Outline, 1=Schwarz mit weißer Outline -->
+  <!-- AOD Color: 0=Blue (Flux), 1=White -->
   <property id="aod_color" type="number">0</property>
 </properties>

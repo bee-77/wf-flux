@@ -2,9 +2,9 @@ import Toybox.Application;
 import Toybox.WatchUi;
 import Toybox.Lang;
 
-class SportFaceApp extends Application.AppBase {
+class FluxApp extends Application.AppBase {
 
-    var mView as SportFaceView?;
+    var mView as FluxView?;
 
     function initialize() {
         AppBase.initialize();
@@ -15,20 +15,19 @@ class SportFaceApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {}
 
     function getInitialView() {
-        mView = new SportFaceView();
-        return [ mView as SportFaceView ];
+        mView = new FluxView();
+        return [ mView as FluxView ];
     }
 
-    // Called when settings change — either from the Connect IQ phone app
-    // or from the on-watch settings menu (CIQ 4.x+).
+    // Called when settings change via Connect IQ app or on-watch menu.
     function onSettingsChanged() as Void {
         if (mView != null) {
-            (mView as SportFaceView).loadSettings();
+            (mView as FluxView).loadSettings();
         }
         WatchUi.requestUpdate();
     }
 }
 
-function getApp() as SportFaceApp {
-    return Application.getApp() as SportFaceApp;
+function getApp() as FluxApp {
+    return Application.getApp() as FluxApp;
 }
