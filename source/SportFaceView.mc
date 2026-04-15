@@ -102,8 +102,8 @@ class FluxView extends WatchUi.WatchFace {
         try { timeH = (dc.getTextDimensions("0", Graphics.FONT_NUMBER_MILD))[1] as Number; } catch (ex) {}
 
         // ── Y-Logo geometry ──────────────────────────────────────────────────
-        // Center of Y: 42% down, arm spans 23% of width
-        var arm    = w * 23 / 100;
+        // Center of Y: 42% down, arm spans 18% of width
+        var arm    = w * 18 / 100;
         var cyFlux = h * 42 / 100;
 
         // Tip positions (Garmin: 0°=up, x=cx+arm*sin, y=cy-arm*cos)
@@ -125,17 +125,41 @@ class FluxView extends WatchUi.WatchFace {
         // ── Flux Capacitor (Y) ───────────────────────────────────────────────
         drawFluxCapacitor(dc, cx, cyFlux, arm);
 
-        // ── Time — FONT_NUMBER_MILD, Flux-Blau ───────────────────────────────
-        var yTime = cyFlux + arm / 2 + dotR + h * 2 / 100;
-        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        // ── Time: Stunden fett+hell, Minuten regulär Flux-Blau ───────────────
+        var yTime    = cyFlux + arm / 2 + dotR + h * 2 / 100;
+        var colonIdx = timeStr.find(":");
+        if (colonIdx != null) {
+            var ci   = colonIdx as Number;
+            var hStr = timeStr.substring(0, ci) as String;
+            var mStr = timeStr.substring(ci, timeStr.length()) as String;
+            var hW   = (dc.getTextDimensions(hStr, Graphics.FONT_NUMBER_MILD))[0] as Number;
+            var mW   = (dc.getTextDimensions(mStr, Graphics.FONT_NUMBER_MILD))[0] as Number;
+            var xH   = cx - (hW + mW) / 2;
+            var xM   = xH + hW;
+
+            // Glow-Schatten (dunkelblau, versetzt)
+            dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xH + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(xM + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, mStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+            // Stunden: fake-bold (3 Passes, fast Weiß-Blau)
+            dc.setColor(0xDDEEFF, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xH - 1, yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(xH + 1, yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(xH,     yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+            // Minuten + Doppelpunkt: Flux-Blau, einfacher Pass
+            dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xM, yTime, Graphics.FONT_NUMBER_MILD, mStr, Graphics.TEXT_JUSTIFY_LEFT);
+        } else {
+            dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        }
 
         // ── Wochentag + Datum unter der Uhrzeit ──────────────────────────────
-        var yDate    = yTime + timeH + 2;
+        var yDate    = yTime + timeH - 4;
         var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var days     = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
         var dow      = 0;
@@ -148,7 +172,7 @@ class FluxView extends WatchUi.WatchFace {
         dc.drawText(cx, yDate, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ── HR + Akku ────────────────────────────────────────────────────────
-        var yInfo = yDate + tinyH + h * 1 / 100;
+        var yInfo = yDate + tinyH + 2;
         drawInfoStrip(dc, cx, w, yInfo, tinyH, lg);
     }
 
