@@ -608,49 +608,77 @@ class FluxView extends WatchUi.WatchFace {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  BttF ZEIT  (rot-orange Panel, HH:MM)
+    //  BttF ZEIT  — jede Ziffer mit eigenem Panel (HH:MM)
     // ─────────────────────────────────────────────────────────────────────────
     function drawBttfTime(dc as Dc, cx as Number, y as Number,
                           timeStr as String, w as Number) as Void {
-        var dw  = w * 7 / 100;
-        var dh  = dw * 2;
-        var st  = mathMax(2, dw / 5);
-        var cw  = mathMax(st * 2, dw / 3);
-        var gap = mathMax(1, dw / 8);
-        var pad = st + 2;
+        var dw   = w * 7 / 100;
+        var dh   = dw * 2;
+        var st   = mathMax(2, dw / 5);
+        var cw   = mathMax(st * 2, dw / 3);
+        var gap  = mathMax(3, dw / 5);
+        var pad  = 2;
+        var cOff = 0x280000;
 
         var ci = timeStr.find(":");
         if (ci == null) { return; }
-        var idx = ci as Number;
+        var idx  = ci as Number;
         var hStr = timeStr.substring(0, idx) as String;
         var mStr = timeStr.substring(idx + 1, timeStr.length()) as String;
         if (hStr.length() < 2) { hStr = "0" + hStr; }
         var digits = hStr + mStr;
 
-        var totalW = 4 * dw + cw + 5 * gap;
-        var panelW = totalW + 2 * pad;
-        var panelH = dh + 2 * pad;
-        var px     = cx - panelW / 2;
+        // Zell-Maße: Digit-Zelle und Kolon-Zelle
+        var cellW  = dw + 2 * pad;
+        var cellH  = dh + 2 * pad;
+        var cCellW = cw + 2 * pad;
 
-        // Dunkles Panel
+        // Gesamtbreite: D1 gap D2 gap COLON gap D3 gap D4
+        var totalW = 4 * cellW + cCellW + 4 * gap;
+        var x0     = cx - totalW / 2;
+
+        // Hilfsfunktion inline: Panel + Highlight zeichnen
+        // D1
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(px, y - pad, panelW, panelH, 4);
-        // Panel-Highlight
-        dc.setColor(0x330000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x0, y - pad, cellW, cellH, 2);
+        dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        dc.drawLine(px + 3, y - pad,       px + panelW - 4, y - pad);
-        dc.drawLine(px,     y - pad + 1,   px,              y - pad + panelH - 2);
+        dc.drawLine(x0 + 2, y - pad, x0 + cellW - 3, y - pad);
+        drawSegDigit(dc, digits.substring(0, 1) as String, x0 + pad, y, dw, dh, st, 0xFF2200, cOff);
 
-        var xd = cx - totalW / 2;
-        drawSegDigit(dc, digits.substring(0, 1) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
-        drawSegDigit(dc, digits.substring(1, 2) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
-        drawSegColon(dc, xd, y, cw, dh, st, 0xFF2200); xd += cw + gap;
-        drawSegDigit(dc, digits.substring(2, 3) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
-        drawSegDigit(dc, digits.substring(3, 4) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000);
+        // D2
+        var x1 = x0 + cellW + gap;
+        dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x1, y - pad, cellW, cellH, 2);
+        dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(x1 + 2, y - pad, x1 + cellW - 3, y - pad);
+        drawSegDigit(dc, digits.substring(1, 2) as String, x1 + pad, y, dw, dh, st, 0xFF2200, cOff);
+
+        // Kolon
+        var xC = x1 + cellW + gap;
+        dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xC, y - pad, cCellW, cellH, 2);
+        drawSegColon(dc, xC + pad, y, cw, dh, st, 0xFF2200);
+
+        // D3
+        var x2 = xC + cCellW + gap;
+        dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x2, y - pad, cellW, cellH, 2);
+        dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(x2 + 2, y - pad, x2 + cellW - 3, y - pad);
+        drawSegDigit(dc, digits.substring(2, 3) as String, x2 + pad, y, dw, dh, st, 0xFF2200, cOff);
+
+        // D4
+        var x3 = x2 + cellW + gap;
+        dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x3, y - pad, cellW, cellH, 2);
+        dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(x3 + 2, y - pad, x3 + cellW - 3, y - pad);
+        drawSegDigit(dc, digits.substring(3, 4) as String, x3 + pad, y, dw, dh, st, 0xFF2200, cOff);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  BttF DATUM  (amber Panel, Wochentag-Label + DD.MM.YY)
+    //  BttF DATUM  — Wochentag-Label + jede Ziffer mit eigenem Panel (DD.MM.YY)
     // ─────────────────────────────────────────────────────────────────────────
     function drawBttfDate(dc as Dc, cx as Number, y as Number,
                           dayAbbr as String, day as Number, month as Number,
@@ -658,53 +686,84 @@ class FluxView extends WatchUi.WatchFace {
         var dw   = w * 4 / 100;
         var dh   = dw * 2;
         var st   = mathMax(1, dw / 5);
-        var gap  = mathMax(1, dw / 8);
+        var gap  = mathMax(2, dw / 3);
         var dotW = mathMax(2, st);
-        var pad  = st + 2;
+        var pad  = 2;
         var lh   = 11;
+        var cOff = 0x1A0800;
 
         var dd = day.format("%02d");
         var mm = month.format("%02d");
         var yy = (year % 100).format("%02d");
         var digits = dd + mm + yy;
 
-        var totalW = 6 * dw + 2 * (dotW + gap) + 7 * gap;
-        var panelW = totalW + 2 * pad;
-        var panelH = lh + dh + 3 * pad;
-        var px     = cx - panelW / 2;
+        var cellW = dw + 2 * pad;
+        var cellH = dh + 2 * pad;
+        // Gesamt: D D · D D · D D (6 Zellen + 2 Punkte-Lücken + Abstände)
+        var totalW = 6 * cellW + 2 * (dotW + gap) + 5 * gap;
+        var x0     = cx - totalW / 2;
+        var dy     = y + lh + 2;
 
-        // Dunkles Panel
+        // Wochentag + AM/PM Label (ohne Panel, schwebend)
+        dc.setColor(0x7A5A10, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, y, Graphics.FONT_XTINY, dayAbbr + ampm, Graphics.TEXT_JUSTIFY_CENTER);
+
+        var xd = x0;
+
+        // DD — 2 Einzelpanels
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(px, y, panelW, panelH, 4);
-        // Panel-Highlight
-        dc.setColor(0x332200, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        dc.drawLine(px + 3, y,     px + panelW - 4, y);
-        dc.drawLine(px,     y + 1, px,              y + panelH - 2);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(0, 1) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
+        xd += cellW + gap;
 
-        // Wochentag-Label
-        dc.setColor(0x806020, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, y + pad, Graphics.FONT_XTINY, dayAbbr + ampm, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(1, 2) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
+        xd += cellW;
 
-        // 7-Segment-Ziffern
-        var dy = y + pad + lh + 2;
-        var xd = cx - totalW / 2;
-
-        // DD
-        drawSegDigit(dc, digits.substring(0, 1) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
-        drawSegDigit(dc, digits.substring(1, 2) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw;
+        // Punkt DD.MM
         dc.setColor(0xFFAA00, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(xd + gap / 2, dy + dh - dotW - 1, dotW, dotW);
+        dc.fillRectangle(xd + gap / 2, dy + cellH - dotW - 1, dotW, dotW);
         xd += gap + dotW + gap;
-        // MM
-        drawSegDigit(dc, digits.substring(2, 3) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
-        drawSegDigit(dc, digits.substring(3, 4) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw;
+
+        // MM — 2 Einzelpanels
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(2, 3) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
+        xd += cellW + gap;
+
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(3, 4) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
+        xd += cellW;
+
+        // Punkt MM.YY
         dc.setColor(0xFFAA00, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(xd + gap / 2, dy + dh - dotW - 1, dotW, dotW);
+        dc.fillRectangle(xd + gap / 2, dy + cellH - dotW - 1, dotW, dotW);
         xd += gap + dotW + gap;
-        // YY
-        drawSegDigit(dc, digits.substring(4, 5) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
-        drawSegDigit(dc, digits.substring(5, 6) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800);
+
+        // YY — 2 Einzelpanels
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(4, 5) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
+        xd += cellW + gap;
+
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
+        drawSegDigit(dc, digits.substring(5, 6) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
