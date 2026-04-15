@@ -519,8 +519,6 @@ class FluxView extends WatchUi.WatchFace {
         dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
         // Tiny flux capacitor in AOD
-        var tinyH = 14;
-        try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
         var yFlux = h * 65 / 100;
         drawFluxCapacitor(dc, cx, yFlux, w * 6 / 100);
     }
