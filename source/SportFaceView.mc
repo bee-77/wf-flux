@@ -89,11 +89,8 @@ class FluxView extends WatchUi.WatchFace {
             return;
         }
 
-        // ── Background ───────────────────────────────────────────────────────
-        dc.setColor(C_BG, C_BG);
-        dc.clear();
-
-        // ── Bezel ────────────────────────────────────────────────────────────
+        // ── Background + Bezel ───────────────────────────────────────────────
+        drawBackground(dc, w, h, cx);
         drawBezel(dc, w, h, cx);
 
         // ── Layout constants ─────────────────────────────────────────────────
@@ -193,38 +190,122 @@ class FluxView extends WatchUi.WatchFace {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  BEZEL
+    //  BACKGROUND  — Deep-Space radiale Vignette
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawBackground(dc as Dc, w as Number, h as Number, cx as Number) as Void {
+        var cy = h / 2;
+        var r  = cx;
+
+        // Reines Schwarz als Basis
+        dc.setColor(0x000000, 0x000000);
+        dc.clear();
+
+        // Radiale Vignette: jede kleinere Kreisfüllung überschreibt das Zentrum →
+        // Ränder behalten die äußere Farbe (tiefes Weltraum-Blau), Mitte = reines Schwarz
+        dc.setColor(0x001828, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 88 / 100);
+        dc.setColor(0x001020, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 74 / 100);
+        dc.setColor(0x000C18, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 60 / 100);
+        dc.setColor(0x000810, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 46 / 100);
+        dc.setColor(0x000408, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 32 / 100);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r * 18 / 100);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  BEZEL  — 3D Premium-Metallring + verfeinerte Ticks
     // ─────────────────────────────────────────────────────────────────────────
     function drawBezel(dc as Dc, w as Number, h as Number, cx as Number) as Void {
         var cy = h / 2;
-        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawArc(cx, cy, cx - w * 2 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
-        dc.setPenWidth(1);
-        dc.drawArc(cx, cy, cx - w * 3 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
+        var r  = cx;
 
-        // Cardinal ticks
+        // ── Bezel-Körper: dunkler Metallring ──────────────────────────────────
+        dc.setColor(0x141416, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(w * 5 / 100);
+        dc.drawArc(cx, cy, r - w * 25 / 1000, Graphics.ARC_CLOCKWISE, 0, 360);
+
+        // ── Bevel-Highlight oben/links (Lichtquelle 11 Uhr) ──────────────────
+        // Garmin: 0°=Ost, 90°=Nord(oben), ARC_COUNTER_CLOCKWISE 0→180 = obere Hälfte
+        dc.setColor(0x505058, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawArc(cx, cy, r - 1, Graphics.ARC_COUNTER_CLOCKWISE, 0, 180);
+        dc.setColor(0x2C2C34, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawArc(cx, cy, r - 3, Graphics.ARC_COUNTER_CLOCKWISE, 0, 180);
+
+        // ── Bevel-Schatten unten/rechts ───────────────────────────────────────
+        dc.setColor(0x050506, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawArc(cx, cy, r - 1, Graphics.ARC_CLOCKWISE, 0, 180);
+
+        // ── Zweiter innerer Maschinenring ─────────────────────────────────────
+        dc.setColor(0x1C1C24, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawArc(cx, cy, r - w * 6 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
+        dc.setColor(0x363642, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawArc(cx, cy, r - w * 6 / 100, Graphics.ARC_COUNTER_CLOCKWISE, 0, 180);
+
+        // ── Innerer Zifferblatt-Trenner (Flux-Blau) ───────────────────────────
+        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawArc(cx, cy, r - w * 8 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
+
+        // ── Kardinalstriche — 3D (Schatten + Körper + Spekularhighlight) ──────
+        var te = w * 1 / 100;
+        var tl = w * 8 / 100;
+        var tm = w * 5 / 100;
+
+        // Schatten (1px versetzt, dunkelblau)
+        dc.setColor(0x002244, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(3);
+        dc.drawLine(cx + 1, te + 1,     cx + 1, tl + 1);
+        dc.drawLine(cx + 1, h - tl - 1, cx + 1, h - te - 1);
+        dc.drawLine(te + 1, cy + 1,     tl + 1, cy + 1);
+        dc.drawLine(w - tl - 1, cy + 1, w - te - 1, cy + 1);
+
+        // Haupt-Tick (Flux-Blau)
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        var te = w * 1 / 100;
-        var tl = w * 4 / 100;
         dc.drawLine(cx, te,     cx, tl);
         dc.drawLine(cx, h - tl, cx, h - te);
         dc.drawLine(te, cy,     tl, cy);
         dc.drawLine(w - tl, cy, w - te, cy);
 
-        // Minor ticks
+        // Spekularhighlight (weißblau, nur nahe der Außenkante)
+        dc.setColor(0xCCEEFF, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
-        var r1 = cx - w * 2 / 100;
-        var r2 = cx - w * 4 / 100;
+        dc.drawLine(cx, te, cx, tm);
+        dc.drawLine(cx, h - tm, cx, h - te);
+        dc.drawLine(te, cy, tm, cy);
+        dc.drawLine(w - tm, cy, w - te, cy);
+
+        // ── Nebenstriche — zweifarbig ─────────────────────────────────────────
+        var r1 = r - w * 2 / 100;    // Außen (im Bezel-Körper)
+        var r2 = r - w * 7 / 100;    // Innen (Zifferblatt)
+        var rm = r - w * 45 / 1000;  // Übergang zwischen dim/bright
+
         for (var angle = 30; angle < 360; angle += 30) {
             if (angle == 90 || angle == 180 || angle == 270 || angle == 0) { continue; }
             var rad  = angle * 0.01745329f;
             var sinA = Math.sin(rad).toFloat();
             var cosA = Math.cos(rad).toFloat();
+
+            // Äußerer Teil (im Bezel, gedimmt)
+            dc.setColor(0x18182A, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
             dc.drawLine(
                 cx + (r1 * sinA).toNumber(), cy - (r1 * cosA).toNumber(),
+                cx + (rm * sinA).toNumber(), cy - (rm * cosA).toNumber()
+            );
+            // Innerer Teil (sichtbar, heller)
+            dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(
+                cx + (rm * sinA).toNumber(), cy - (rm * cosA).toNumber(),
                 cx + (r2 * sinA).toNumber(), cy - (r2 * cosA).toNumber()
             );
         }
@@ -249,14 +330,24 @@ class FluxView extends WatchUi.WatchFace {
             endY[i]  = cy - (armLen * Math.cos(rad).toFloat()).toNumber();
         }
 
-        // Glow halo
+        // Äußerster Deep-Space-Glow (sehr breit, sehr dunkel — Energiefeld)
+        dc.setColor(0x001020, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(glowW * 3);
+        for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
+
+        // Mittlerer Glow-Halo
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(glowW);
         for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
 
-        // Core lines
+        // Kern-Linie (Flux-Blau)
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(coreW);
+        for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
+
+        // Weißglühender Hochglanz-Kern
+        dc.setColor(0x88CCFF, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(mathMax(1, coreW / 2));
         for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
 
         // Endpoint dots: glow → amber → white hot
