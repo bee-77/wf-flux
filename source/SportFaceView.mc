@@ -640,7 +640,7 @@ class FluxView extends WatchUi.WatchFace {
         // Hilfsfunktion inline: Panel + Highlight zeichnen
         // D1
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x0, y - pad, cellW, cellH, 2);
+        dc.fillRectangle(x0, y - pad, cellW, cellH);
         dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
         dc.drawLine(x0 + 2, y - pad, x0 + cellW - 3, y - pad);
@@ -649,7 +649,7 @@ class FluxView extends WatchUi.WatchFace {
         // D2
         var x1 = x0 + cellW + gap;
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x1, y - pad, cellW, cellH, 2);
+        dc.fillRectangle(x1, y - pad, cellW, cellH);
         dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(x1 + 2, y - pad, x1 + cellW - 3, y - pad);
         drawSegDigit(dc, digits.substring(1, 2) as String, x1 + pad, y, dw, dh, st, 0xFF2200, cOff);
@@ -657,13 +657,13 @@ class FluxView extends WatchUi.WatchFace {
         // Kolon
         var xC = x1 + cellW + gap;
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xC, y - pad, cCellW, cellH, 2);
+        dc.fillRectangle(xC, y - pad, cCellW, cellH);
         drawSegColon(dc, xC + pad, y, cw, dh, st, 0xFF2200);
 
         // D3
         var x2 = xC + cCellW + gap;
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x2, y - pad, cellW, cellH, 2);
+        dc.fillRectangle(x2, y - pad, cellW, cellH);
         dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(x2 + 2, y - pad, x2 + cellW - 3, y - pad);
         drawSegDigit(dc, digits.substring(2, 3) as String, x2 + pad, y, dw, dh, st, 0xFF2200, cOff);
@@ -671,7 +671,7 @@ class FluxView extends WatchUi.WatchFace {
         // D4
         var x3 = x2 + cellW + gap;
         dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x3, y - pad, cellW, cellH, 2);
+        dc.fillRectangle(x3, y - pad, cellW, cellH);
         dc.setColor(0x2A0000, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(x3 + 2, y - pad, x3 + cellW - 3, y - pad);
         drawSegDigit(dc, digits.substring(3, 4) as String, x3 + pad, y, dw, dh, st, 0xFF2200, cOff);
@@ -712,7 +712,7 @@ class FluxView extends WatchUi.WatchFace {
 
         // DD — 2 Einzelpanels
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
@@ -720,7 +720,7 @@ class FluxView extends WatchUi.WatchFace {
         xd += cellW + gap;
 
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
         drawSegDigit(dc, digits.substring(1, 2) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
@@ -733,14 +733,14 @@ class FluxView extends WatchUi.WatchFace {
 
         // MM — 2 Einzelpanels
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
         drawSegDigit(dc, digits.substring(2, 3) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
         xd += cellW + gap;
 
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
         drawSegDigit(dc, digits.substring(3, 4) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
@@ -753,14 +753,14 @@ class FluxView extends WatchUi.WatchFace {
 
         // YY — 2 Einzelpanels
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
         drawSegDigit(dc, digits.substring(4, 5) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
         xd += cellW + gap;
 
         dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(xd, dy, cellW, cellH, 2);
+        dc.fillRectangle(xd, dy, cellW, cellH);
         dc.setColor(0x2A1800, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xd + 2, dy, xd + cellW - 3, dy);
         drawSegDigit(dc, digits.substring(5, 6) as String, xd + pad, dy + pad, dw, dh, st, 0xFFAA00, cOff);
