@@ -98,8 +98,16 @@ class FluxView extends WatchUi.WatchFace {
         var timeStr   = buildTimeString(clockTime);
         var tinyH     = 12;
         try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
-        var timeH     = 40;
-        try { timeH = (dc.getTextDimensions("0", Graphics.FONT_NUMBER_MILD))[1] as Number; } catch (ex) {}
+        // BttF-Segment-Maße (für Layout-Berechnung)
+        var timeDW   = w * 11 / 100;
+        var timeDH   = timeDW * 2;
+        var timeSt   = mathMax(2, timeDW / 5);
+        var timePad  = timeSt + 2;
+        var dateDW   = w * 7 / 100;
+        var dateDH   = dateDW * 2;
+        var dateSt   = mathMax(1, dateDW / 5);
+        var datePad  = dateSt + 2;
+        var datePanH = 11 + dateDH + 3 * datePad;
 
         // ── Y-Logo geometry ──────────────────────────────────────────────────
         // Center of Y: 42% down, arm spans 18% of width
@@ -109,15 +117,14 @@ class FluxView extends WatchUi.WatchFace {
         // Tip positions (Garmin: 0°=up, x=cx+arm*sin, y=cy-arm*cos)
         var tipTopX = cx;
         var tipTopY = cyFlux - arm;
-        var tipRX   = cx + (arm * 0.86603f).toNumber();   // lower-right (120°)
+        var tipRX   = cx + (arm * 0.86603f).toNumber();
         var tipRY   = cyFlux + (arm * 0.5f).toNumber();
-        var tipLX   = cx - (arm * 0.86603f).toNumber();   // lower-left  (240°)
+        var tipLX   = cx - (arm * 0.86603f).toNumber();
         var tipLY   = tipRY;
 
         var dotR    = mathMax(4, arm / 8);
 
         // ── Data at arm tips ─────────────────────────────────────────────────
-        // Draw before flux so dots render on top
         drawTipData(dc, tipTopX, tipTopY, dotR, mSlotTop,   0, tinyH);
         drawTipData(dc, tipLX,   tipLY,   dotR, mSlotLeft,  1, tinyH);
         drawTipData(dc, tipRX,   tipRY,   dotR, mSlotRight, 2, tinyH);
@@ -125,75 +132,24 @@ class FluxView extends WatchUi.WatchFace {
         // ── Flux Capacitor (Y) ───────────────────────────────────────────────
         drawFluxCapacitor(dc, cx, cyFlux, arm);
 
-        // ── Time: Stunden fett+hell, Minuten regulär Flux-Blau ───────────────
-        var yTime    = cyFlux + arm / 2 + dotR + h * 2 / 100;
-        var colonIdx = timeStr.find(":");
-        if (colonIdx != null) {
-            var ci   = colonIdx as Number;
-            var hStr = timeStr.substring(0, ci) as String;
-            var mStr = timeStr.substring(ci, timeStr.length()) as String;
-            var hW   = (dc.getTextDimensions(hStr, Graphics.FONT_NUMBER_MILD))[0] as Number;
-            var mW   = (dc.getTextDimensions(mStr, Graphics.FONT_NUMBER_MILD))[0] as Number;
-            var xH   = cx - (hW + mW) / 2;
-            var xM   = xH + hW;
+        // ── Zeit: BttF 7-Segment (rot-orange) ────────────────────────────────
+        var yTime = cyFlux + arm / 2 + dotR + h * 2 / 100;
+        drawBttfTime(dc, cx, yTime, timeStr, w);
 
-            // Glow-Schatten (dunkelblau, versetzt)
-            dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xH + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.drawText(xM + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, mStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-            // Stunden: fake-bold (3 Passes, fast Weiß-Blau)
-            dc.setColor(0xDDEEFF, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xH - 1, yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.drawText(xH + 1, yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.drawText(xH,     yTime, Graphics.FONT_NUMBER_MILD, hStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-            // Minuten + Doppelpunkt: Flux-Blau, einfacher Pass
-            dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xM, yTime, Graphics.FONT_NUMBER_MILD, mStr, Graphics.TEXT_JUSTIFY_LEFT);
-        } else {
-            dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-            dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        }
-
-        // ── Wochentag + Datum in 3D-Box ──────────────────────────────────────
-        var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var days     = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
-        var dow      = 0;
+        // ── Datum: BttF 7-Segment (amber) ────────────────────────────────────
+        var now     = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var days    = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
+        var dow     = 0;
         try { dow = now.day_of_week as Number; } catch (ex) {}
-        var dayAbbr  = (dow >= 1 && dow <= 7) ? days[dow - 1] : "";
-        var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
-        var ampmStr  = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? "  AM" : "  PM") : "";
-        var fullDate = dayAbbr + "  " + dateStr + ampmStr;
+        var dayAbbr = (dow >= 1 && dow <= 7) ? days[dow - 1] : "";
+        var ampmStr = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? " AM" : " PM") : "";
+        var yDate   = yTime + timeDH + timePad + 5;
+        drawBttfDate(dc, cx, yDate, dayAbbr,
+                     now.day as Number, now.month as Number, now.year as Number,
+                     ampmStr, w);
 
-        // Direkt unterhalb der Uhrzeit verankern
-        var boxPadX = w * 4 / 100;
-        var boxPadY = 4;
-        var boxW    = (dc.getTextDimensions(fullDate, Graphics.FONT_XTINY))[0] as Number + 2 * boxPadX;
-        var boxH    = tinyH + 2 * boxPadY;
-        var boxX    = cx - boxW / 2;
-        var boxY    = yTime + timeH + 4;
-        var yInfo   = boxY + boxH + 4;
-
-        // 3D-Box: dunkle Füllung
-        dc.setColor(0x060E18, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(boxX, boxY, boxW, boxH, 3);
-        // Highlight: oben + links (Lichtquelle oben-links)
-        dc.setColor(0x1E3248, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawLine(boxX + 3, boxY,          boxX + boxW - 4, boxY);
-        dc.drawLine(boxX,     boxY + 1,      boxX,            boxY + boxH - 2);
-        // Schatten: unten + rechts
-        dc.setColor(0x010406, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(boxX + 3, boxY + boxH - 1, boxX + boxW - 4, boxY + boxH - 1);
-        dc.drawLine(boxX + boxW - 1, boxY + 1, boxX + boxW - 1, boxY + boxH - 2);
-        // Datum-Text
-        dc.setColor(0x6688AA, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, boxY + boxPadY, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // ── HR + Akku ────────────────────────────────────────────────────────
+        // ── HR + Akku ─────────────────────────────────────────────────────────
+        var yInfo = yDate + datePanH + 4;
         drawInfoStrip(dc, cx, w, yInfo, tinyH, lg);
     }
 
@@ -649,6 +605,154 @@ class FluxView extends WatchUi.WatchFace {
 
     function mathMax(a as Number, b as Number) as Number {
         return (a > b) ? a : b;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  BttF ZEIT  (rot-orange Panel, HH:MM)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawBttfTime(dc as Dc, cx as Number, y as Number,
+                          timeStr as String, w as Number) as Void {
+        var dw  = w * 11 / 100;
+        var dh  = dw * 2;
+        var st  = mathMax(2, dw / 5);
+        var cw  = mathMax(st * 2, dw / 3);
+        var gap = mathMax(1, dw / 8);
+        var pad = st + 2;
+
+        var ci = timeStr.find(":");
+        if (ci == null) { return; }
+        var idx = ci as Number;
+        var hStr = timeStr.substring(0, idx) as String;
+        var mStr = timeStr.substring(idx + 1, timeStr.length()) as String;
+        if (hStr.length() < 2) { hStr = "0" + hStr; }
+        var digits = hStr + mStr;
+
+        var totalW = 4 * dw + cw + 5 * gap;
+        var panelW = totalW + 2 * pad;
+        var panelH = dh + 2 * pad;
+        var px     = cx - panelW / 2;
+
+        // Dunkles Panel
+        dc.setColor(0x0D0000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(px, y - pad, panelW, panelH, 4);
+        // Panel-Highlight
+        dc.setColor(0x330000, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(px + 3, y - pad,       px + panelW - 4, y - pad);
+        dc.drawLine(px,     y - pad + 1,   px,              y - pad + panelH - 2);
+
+        var xd = cx - totalW / 2;
+        drawSegDigit(dc, digits.substring(0, 1) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
+        drawSegDigit(dc, digits.substring(1, 2) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
+        drawSegColon(dc, xd, y, cw, dh, st, 0xFF2200); xd += cw + gap;
+        drawSegDigit(dc, digits.substring(2, 3) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000); xd += dw + gap;
+        drawSegDigit(dc, digits.substring(3, 4) as String, xd, y, dw, dh, st, 0xFF2200, 0x200000);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  BttF DATUM  (amber Panel, Wochentag-Label + DD.MM.YY)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawBttfDate(dc as Dc, cx as Number, y as Number,
+                          dayAbbr as String, day as Number, month as Number,
+                          year as Number, ampm as String, w as Number) as Void {
+        var dw   = w * 7 / 100;
+        var dh   = dw * 2;
+        var st   = mathMax(1, dw / 5);
+        var gap  = mathMax(1, dw / 8);
+        var dotW = mathMax(2, st);
+        var pad  = st + 2;
+        var lh   = 11;
+
+        var dd = day.format("%02d");
+        var mm = month.format("%02d");
+        var yy = (year % 100).format("%02d");
+        var digits = dd + mm + yy;
+
+        var totalW = 6 * dw + 2 * (dotW + gap) + 7 * gap;
+        var panelW = totalW + 2 * pad;
+        var panelH = lh + dh + 3 * pad;
+        var px     = cx - panelW / 2;
+
+        // Dunkles Panel
+        dc.setColor(0x0D0800, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(px, y, panelW, panelH, 4);
+        // Panel-Highlight
+        dc.setColor(0x332200, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(px + 3, y,     px + panelW - 4, y);
+        dc.drawLine(px,     y + 1, px,              y + panelH - 2);
+
+        // Wochentag-Label
+        dc.setColor(0x806020, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, y + pad, Graphics.FONT_XTINY, dayAbbr + ampm, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // 7-Segment-Ziffern
+        var dy = y + pad + lh + 2;
+        var xd = cx - totalW / 2;
+
+        // DD
+        drawSegDigit(dc, digits.substring(0, 1) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
+        drawSegDigit(dc, digits.substring(1, 2) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw;
+        dc.setColor(0xFFAA00, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(xd + gap / 2, dy + dh - dotW - 1, dotW, dotW);
+        xd += gap + dotW + gap;
+        // MM
+        drawSegDigit(dc, digits.substring(2, 3) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
+        drawSegDigit(dc, digits.substring(3, 4) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw;
+        dc.setColor(0xFFAA00, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(xd + gap / 2, dy + dh - dotW - 1, dotW, dotW);
+        xd += gap + dotW + gap;
+        // YY
+        drawSegDigit(dc, digits.substring(4, 5) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800); xd += dw + gap;
+        drawSegDigit(dc, digits.substring(5, 6) as String, xd, dy, dw, dh, st, 0xFFAA00, 0x1A0800);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  7-SEGMENT DIGIT  — korrekte Muster: a=0x01 b=0x02 c=0x04 d=0x08
+    //                                       e=0x10 f=0x20 g=0x40
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawSegDigit(dc as Dc, ch as String, x as Number, y as Number,
+                          dw as Number, dh as Number, st as Number,
+                          cOn as Number, cOff as Number) as Void {
+        var patterns = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F] as Array<Number>;
+        var dv = ch.toNumber();
+        if (dv == null) { return; }
+        var d = dv as Number;
+        if (d < 0 || d > 9) { return; }
+        var seg = patterns[d];
+        var hy  = dh / 2;
+
+        // a: oben
+        dc.setColor(((seg & 0x01) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y, dw - 2 * st, st);
+        // b: oben-rechts
+        dc.setColor(((seg & 0x02) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + dw - st, y + st, st, hy - 2 * st);
+        // c: unten-rechts
+        dc.setColor(((seg & 0x04) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + dw - st, y + hy + st, st, hy - 2 * st);
+        // d: unten
+        dc.setColor(((seg & 0x08) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y + dh - st, dw - 2 * st, st);
+        // e: unten-links
+        dc.setColor(((seg & 0x10) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, y + hy + st, st, hy - 2 * st);
+        // f: oben-links
+        dc.setColor(((seg & 0x20) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, y + st, st, hy - 2 * st);
+        // g: Mitte
+        dc.setColor(((seg & 0x40) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y + hy - st / 2, dw - 2 * st, st);
+    }
+
+    // Doppelpunkt: zwei quadratische Punkte
+    function drawSegColon(dc as Dc, x as Number, y as Number,
+                          cw as Number, dh as Number, st as Number, cOn as Number) as Void {
+        var ds = mathMax(2, st);
+        var dx = x + cw / 2 - ds / 2;
+        dc.setColor(cOn, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(dx, y + dh / 4 - ds / 2,     ds, ds);
+        dc.fillRectangle(dx, y + 3 * dh / 4 - ds / 2, ds, ds);
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }
