@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <resources>
   <string id="AppName">Flux</string>
-  <string id="SettingTopLeftTitle">Top Left</string>
-  <string id="SettingTopRightTitle">Top Right</string>
-  <string id="SettingBotLeftTitle">Bottom Left</string>
-  <string id="SettingBotRightTitle">Bottom Right</string>
+  <string id="SettingSlotTopTitle">Top</string>
+  <string id="SettingSlotLeftTitle">Left</string>
+  <string id="SettingSlotRightTitle">Right</string>
   <string id="SettingTimeStyleTitle">Time Format</string>
   <string id="SettingDistUnitTitle">Distance Unit</string>
   <string id="SettingAodColorTitle">AOD Color</string>

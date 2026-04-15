@@ -3,7 +3,7 @@
 
   <!-- Slot options: 0=Weather, 1=Calories, 2=Steps, 3=Distance, 4=Active Min, 5=Floors, 6=Body Battery -->
 
-  <setting propertyKey="@Properties.slot_tl" title="@Strings.SettingTopLeftTitle">
+  <setting propertyKey="@Properties.slot_top" title="@Strings.SettingSlotTopTitle">
     <settingConfig type="list">
       <listEntry value="0">Weather</listEntry>
       <listEntry value="1">Calories</listEntry>
@@ -15,7 +15,7 @@
     </settingConfig>
   </setting>
 
-  <setting propertyKey="@Properties.slot_tr" title="@Strings.SettingTopRightTitle">
+  <setting propertyKey="@Properties.slot_left" title="@Strings.SettingSlotLeftTitle">
     <settingConfig type="list">
       <listEntry value="0">Weather</listEntry>
       <listEntry value="1">Calories</listEntry>
@@ -27,19 +27,7 @@
     </settingConfig>
   </setting>
 
-  <setting propertyKey="@Properties.slot_bl" title="@Strings.SettingBotLeftTitle">
-    <settingConfig type="list">
-      <listEntry value="0">Weather</listEntry>
-      <listEntry value="1">Calories</listEntry>
-      <listEntry value="2">Steps</listEntry>
-      <listEntry value="3">Distance</listEntry>
-      <listEntry value="4">Active Min</listEntry>
-      <listEntry value="5">Floors</listEntry>
-      <listEntry value="6">Body Battery</listEntry>
-    </settingConfig>
-  </setting>
-
-  <setting propertyKey="@Properties.slot_br" title="@Strings.SettingBotRightTitle">
+  <setting propertyKey="@Properties.slot_right" title="@Strings.SettingSlotRightTitle">
     <settingConfig type="list">
       <listEntry value="0">Weather</listEntry>
       <listEntry value="1">Calories</listEntry>

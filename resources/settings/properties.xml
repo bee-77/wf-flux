@@ -1,10 +1,9 @@
 <?xml version="1.0"?>
 <properties>
   <!-- Slot options: 0=Weather, 1=Calories, 2=Steps, 3=Distance, 4=Active Min, 5=Floors, 6=Body Battery -->
-  <property id="slot_tl" type="number">0</property>
-  <property id="slot_tr" type="number">2</property>
-  <property id="slot_bl" type="number">3</property>
-  <property id="slot_br" type="number">1</property>
+  <property id="slot_top"   type="number">0</property>
+  <property id="slot_left"  type="number">3</property>
+  <property id="slot_right" type="number">2</property>
 
   <!-- Time Format: 0=24h, 1=12h -->
   <property id="time_style" type="number">0</property>

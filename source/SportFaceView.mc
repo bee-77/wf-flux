@@ -20,30 +20,26 @@ class FluxView extends WatchUi.WatchFace {
     var mWeatherIcons   as Dictionary = {};
     var mWeatherIconsLg as Dictionary = {};
     var mHeartIcon      as BitmapResource?;
-    var mStepsIcon      as BitmapResource?;
     var mHeartIconLg    as BitmapResource?;
-    var mStepsIconLg    as BitmapResource?;
 
     // ── Settings ─────────────────────────────────────────────────────────────
-    var mTimeStyle   as Number = 0;  // 0=24h  1=12h
-    var mDistUnit    as Number = 0;  // 0=km   1=mi
-    var mSlotTL      as Number = 0;  // top-left metric
-    var mSlotTR      as Number = 2;  // top-right metric
-    var mSlotBL      as Number = 3;  // bottom-left metric
-    var mSlotBR      as Number = 1;  // bottom-right metric
-    var mAodColor    as Number = 0;  // 0=Blue  1=White
+    var mTimeStyle  as Number = 0;  // 0=24h  1=12h
+    var mDistUnit   as Number = 0;  // 0=km   1=mi
+    var mSlotTop    as Number = 0;  // top arm  (default: Weather)
+    var mSlotLeft   as Number = 3;  // left arm (default: Distance)
+    var mSlotRight  as Number = 2;  // right arm (default: Steps)
+    var mAodColor   as Number = 0;  // 0=Blue  1=White
 
     // ── State ────────────────────────────────────────────────────────────────
     var mWeatherCondition as Number = -1;
     var mSleeping         as Boolean = false;
 
     // ── Flux palette ─────────────────────────────────────────────────────────
-    // Electric blue / cyan on pure black — inspired by the Flux Capacitor
     var C_BG       as Number = 0x000000;
     var C_TIME     as Number = 0xFFFFFF;
-    var C_FLUX     as Number = 0x00BBFF;  // electric blue
-    var C_FLUX_DIM as Number = 0x003355;  // dark glow
-    var C_AMBER    as Number = 0xFFCC00;  // capacitor dot glow
+    var C_FLUX     as Number = 0x00BBFF;
+    var C_FLUX_DIM as Number = 0x003355;
+    var C_AMBER    as Number = 0xFFCC00;
     var C_PRIMARY  as Number = 0x00BBFF;
     var C_MUTED    as Number = 0x778899;
     var C_LABEL    as Number = 0x4466AA;
@@ -64,11 +60,10 @@ class FluxView extends WatchUi.WatchFace {
         var v;
         v = Properties.getValue("time_style");  if (v != null) { mTimeStyle = v as Number; }
         v = Properties.getValue("dist_unit");   if (v != null) { mDistUnit  = v as Number; }
-        v = Properties.getValue("slot_tl");     if (v != null) { mSlotTL   = v as Number; }
-        v = Properties.getValue("slot_tr");     if (v != null) { mSlotTR   = v as Number; }
-        v = Properties.getValue("slot_bl");     if (v != null) { mSlotBL   = v as Number; }
-        v = Properties.getValue("slot_br");     if (v != null) { mSlotBR   = v as Number; }
-        v = Properties.getValue("aod_color");   if (v != null) { mAodColor = v as Number; }
+        v = Properties.getValue("slot_top");    if (v != null) { mSlotTop   = v as Number; }
+        v = Properties.getValue("slot_left");   if (v != null) { mSlotLeft  = v as Number; }
+        v = Properties.getValue("slot_right");  if (v != null) { mSlotRight = v as Number; }
+        v = Properties.getValue("aod_color");   if (v != null) { mAodColor  = v as Number; }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -78,7 +73,6 @@ class FluxView extends WatchUi.WatchFace {
         var w  = dc.getWidth();
         var h  = dc.getHeight();
         var cx = w / 2;
-        var cy = h / 2;
         var lg = (w >= 390);
 
         // Load icons on first frame
@@ -86,20 +80,12 @@ class FluxView extends WatchUi.WatchFace {
         if (mHeartIcon == null) {
             try { mHeartIcon = WatchUi.loadResource(Rez.Drawables.ic_heart) as BitmapResource; } catch (ex) {}
         }
-        if (mStepsIcon == null) {
-            try { mStepsIcon = WatchUi.loadResource(Rez.Drawables.ic_steps) as BitmapResource; } catch (ex) {}
-        }
-        if (lg) {
-            if (mHeartIconLg == null) {
-                try { mHeartIconLg = WatchUi.loadResource(Rez.Drawables.ic_heart_lg) as BitmapResource; } catch (ex) {}
-            }
-            if (mStepsIconLg == null) {
-                try { mStepsIconLg = WatchUi.loadResource(Rez.Drawables.ic_steps_lg) as BitmapResource; } catch (ex) {}
-            }
+        if (lg && mHeartIconLg == null) {
+            try { mHeartIconLg = WatchUi.loadResource(Rez.Drawables.ic_heart_lg) as BitmapResource; } catch (ex) {}
         }
 
         if (mSleeping) {
-            drawSleepScreen(dc, w, h, cx, cy);
+            drawSleepScreen(dc, w, h, cx);
             return;
         }
 
@@ -108,29 +94,42 @@ class FluxView extends WatchUi.WatchFace {
         dc.clear();
 
         // ── Bezel ────────────────────────────────────────────────────────────
-        drawBezel(dc, w, h, cx, cy);
+        drawBezel(dc, w, h, cx);
 
-        // ── Compute vertical layout ──────────────────────────────────────────
+        // ── Layout constants ─────────────────────────────────────────────────
         var clockTime = System.getClockTime();
         var timeStr   = buildTimeString(clockTime);
-        var tinyH     = 14;
+        var tinyH     = 12;
         var timeH     = 60;
         try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
         try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number; } catch (ex) {}
-        var pad = h * 2 / 100;
 
-        // Time: slightly above center
-        var yTime    = cy - timeH / 2 - h * 3 / 100;
-        var yTopSlot = yTime - tinyH * 2 - pad * 2;
-        var lblOff   = tinyH + pad;
-        var yInfoRow = yTime + timeH + pad;
-        var yFlux    = yInfoRow + tinyH + pad * 3;
-        var yBotSlot = h * 76 / 100;
+        // ── Y-Logo geometry ──────────────────────────────────────────────────
+        // Center of Y: 40% down, arm spans 23% of width
+        var arm    = w * 23 / 100;
+        var cyFlux = h * 40 / 100;
 
-        // ── Top slots ────────────────────────────────────────────────────────
-        drawSlotPair(dc, cx, w, yTopSlot, lblOff, mSlotTL, mSlotTR);
+        // Tip positions (Garmin: 0°=up, x=cx+arm*sin, y=cy-arm*cos)
+        var tipTopX = cx;
+        var tipTopY = cyFlux - arm;
+        var tipRX   = cx + (arm * 0.86603f).toNumber();   // lower-right (120°)
+        var tipRY   = cyFlux + (arm * 0.5f).toNumber();
+        var tipLX   = cx - (arm * 0.86603f).toNumber();   // lower-left  (240°)
+        var tipLY   = tipRY;
 
-        // ── Time (with blue glow) ────────────────────────────────────────────
+        var dotR    = max(4, arm / 8);
+
+        // ── Data at arm tips ─────────────────────────────────────────────────
+        // Draw before flux so dots render on top
+        drawTipData(dc, tipTopX, tipTopY, dotR, mSlotTop,   0, tinyH);
+        drawTipData(dc, tipLX,   tipLY,   dotR, mSlotLeft,  1, tinyH);
+        drawTipData(dc, tipRX,   tipRY,   dotR, mSlotRight, 2, tinyH);
+
+        // ── Flux Capacitor (Y) ───────────────────────────────────────────────
+        drawFluxCapacitor(dc, cx, cyFlux, arm);
+
+        // ── Time — below the Y ───────────────────────────────────────────────
+        var yTime = cyFlux + arm + h * 3 / 100;
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
@@ -143,28 +142,60 @@ class FluxView extends WatchUi.WatchFace {
             dc.drawText(cx, yTime + timeH + 2, Graphics.FONT_XTINY, ampm, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        // ── Info row: Date | HR | Battery ───────────────────────────────────
-        drawInfoRow(dc, cx, w, yInfoRow, tinyH, lg);
+        // ── Info strip: Date | HR | Battery ─────────────────────────────────
+        var yInfo = yTime + timeH + h * 2 / 100;
+        drawInfoStrip(dc, cx, w, yInfo, tinyH, lg);
+    }
 
-        // ── Flux Capacitor decoration ────────────────────────────────────────
-        drawFluxCapacitor(dc, cx, yFlux, w * 9 / 100);
+    // ─────────────────────────────────────────────────────────────────────────
+    //  DATA AT TIP
+    //  side: 0=top (above dot, centered)  1=left (right-justify)  2=right (left-justify)
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawTipData(dc as Dc, tx as Number, ty as Number, dotR as Number,
+                         slot as Number, side as Number, tinyH as Number) as Void {
+        var data  = getSlotData(slot);
+        var val   = data[0] as String;
+        var lbl   = data[1] as String;
+        var color = (data.size() > 2 && data[2] != null) ? data[2] as Number : C_PRIMARY;
+        var gap   = 4;
 
-        // ── Bottom slots ─────────────────────────────────────────────────────
-        drawSlotPair(dc, cx, w, yBotSlot, lblOff, mSlotBL, mSlotBR);
+        if (side == 0) {
+            // Above the top dot, centered on cx
+            var yVal = ty - dotR - gap - tinyH;
+            var yLbl = yVal - tinyH - 2;
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(tx, yVal, Graphics.FONT_XTINY, val, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(tx, yLbl, Graphics.FONT_XTINY, lbl, Graphics.TEXT_JUSTIFY_CENTER);
+        } else if (side == 1) {
+            // Left of left dot, right-justified
+            var xEdge = tx - dotR - gap;
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xEdge, ty - tinyH - 1, Graphics.FONT_XTINY, val, Graphics.TEXT_JUSTIFY_RIGHT);
+            dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xEdge, ty + 2, Graphics.FONT_XTINY, lbl, Graphics.TEXT_JUSTIFY_RIGHT);
+        } else {
+            // Right of right dot, left-justified
+            var xEdge = tx + dotR + gap;
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xEdge, ty - tinyH - 1, Graphics.FONT_XTINY, val, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xEdge, ty + 2, Graphics.FONT_XTINY, lbl, Graphics.TEXT_JUSTIFY_LEFT);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     //  BEZEL
     // ─────────────────────────────────────────────────────────────────────────
-    function drawBezel(dc as Dc, w as Number, h as Number, cx as Number, cy as Number) as Void {
-        // Outer ring
+    function drawBezel(dc as Dc, w as Number, h as Number, cx as Number) as Void {
+        var cy = h / 2;
         dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         dc.drawArc(cx, cy, cx - w * 2 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
         dc.setPenWidth(1);
         dc.drawArc(cx, cy, cx - w * 3 / 100, Graphics.ARC_CLOCKWISE, 0, 360);
 
-        // Cardinal tick marks (12, 3, 6, 9 o'clock)
+        // Cardinal ticks
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
         var te = w * 1 / 100;
@@ -174,7 +205,7 @@ class FluxView extends WatchUi.WatchFace {
         dc.drawLine(te, cy,     tl, cy);
         dc.drawLine(w - tl, cy, w - te, cy);
 
-        // Minor tick marks
+        // Minor ticks
         dc.setPenWidth(1);
         dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
         var r1 = cx - w * 2 / 100;
@@ -192,66 +223,56 @@ class FluxView extends WatchUi.WatchFace {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  FLUX CAPACITOR (Y-shape)
+    //  FLUX CAPACITOR (Y-shape) — sizes scale with armLen
     // ─────────────────────────────────────────────────────────────────────────
     function drawFluxCapacitor(dc as Dc, cx as Number, cy as Number, armLen as Number) as Void {
-        // Three arms at 0° (up), 120° (lower-right), 240° (lower-left)
-        // Garmin convention: angle 0 = 12 o'clock, clockwise
-        // x = cx + armLen * sin(rad)
-        // y = cy - armLen * cos(rad)
+        var dotR  = max(4, armLen / 8);
+        var ctrR  = max(3, armLen / 10);
+        var glowW = max(5, armLen / 9);
+        var coreW = max(2, armLen / 18);
+
+        var endX = new Array<Number>[3];
+        var endY = new Array<Number>[3];
         var angles = [0, 120, 240] as Array<Number>;
-        var endX   = new Array<Number>[3];
-        var endY   = new Array<Number>[3];
 
         for (var i = 0; i < 3; i++) {
             var rad  = angles[i] * 0.01745329f;
-            var sinA = Math.sin(rad).toFloat();
-            var cosA = Math.cos(rad).toFloat();
-            endX[i]  = cx + (armLen * sinA).toNumber();
-            endY[i]  = cy - (armLen * cosA).toNumber();
+            endX[i]  = cx + (armLen * Math.sin(rad).toFloat()).toNumber();
+            endY[i]  = cy - (armLen * Math.cos(rad).toFloat()).toNumber();
         }
 
-        // Glow halo (thick, dark blue)
+        // Glow halo
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(4);
-        for (var i = 0; i < 3; i++) {
-            dc.drawLine(cx, cy, endX[i], endY[i]);
-        }
+        dc.setPenWidth(glowW);
+        for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
 
-        // Core line (thin, bright blue)
+        // Core lines
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        for (var i = 0; i < 3; i++) {
-            dc.drawLine(cx, cy, endX[i], endY[i]);
-        }
+        dc.setPenWidth(coreW);
+        for (var i = 0; i < 3; i++) { dc.drawLine(cx, cy, endX[i], endY[i]); }
 
-        // Endpoint glow dots (amber — capacitor charge points)
+        // Endpoint dots: glow → amber → white hot
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        for (var i = 0; i < 3; i++) {
-            dc.fillCircle(endX[i], endY[i], 5);
-        }
+        for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], dotR + 3); }
         dc.setColor(C_AMBER, Graphics.COLOR_TRANSPARENT);
-        for (var i = 0; i < 3; i++) {
-            dc.fillCircle(endX[i], endY[i], 3);
-        }
+        for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], dotR); }
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        for (var i = 0; i < 3; i++) {
-            dc.fillCircle(endX[i], endY[i], 1);
-        }
+        for (var i = 0; i < 3; i++) { dc.fillCircle(endX[i], endY[i], max(1, dotR / 3)); }
 
-        // Center glow
+        // Center junction
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, 6);
+        dc.fillCircle(cx, cy, ctrR + 3);
         dc.setColor(C_FLUX, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, 4);
+        dc.fillCircle(cx, cy, ctrR);
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(cx, cy, 2);
+        dc.fillCircle(cx, cy, max(1, ctrR / 2));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  INFO ROW  (Date | Heart | Battery)
+    //  INFO STRIP  (Date | HR | Battery) — compact, bottom of screen
     // ─────────────────────────────────────────────────────────────────────────
-    function drawInfoRow(dc as Dc, cx as Number, w as Number, y as Number, tinyH as Number, lg as Boolean) as Void {
+    function drawInfoStrip(dc as Dc, cx as Number, w as Number, y as Number,
+                           tinyH as Number, lg as Boolean) as Void {
         var now     = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var dateStr = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
 
@@ -267,17 +288,17 @@ class FluxView extends WatchUi.WatchFace {
         var batPct = 0;
         try { batPct = System.getSystemStats().battery.toNumber(); } catch (ex) {}
 
-        var heartW   = lg ? 24 : 18;
-        var batBarW  = w * 5 / 100;
-        var gap      = w * 2 / 100;
-        var bpmStr   = hrVal + " bpm";
-        var batStr   = batPct.format("%d") + "%";
+        var heartIconW = lg ? 24 : 18;
+        var gap        = w * 2 / 100;
+        var batBarW    = w * 5 / 100;
+        var bpmStr     = hrVal + " bpm";
+        var batStr     = batPct.format("%d") + "%";
 
-        var dateW   = (dc.getTextDimensions(dateStr, Graphics.FONT_XTINY))[0] as Number;
-        var bpmW    = (dc.getTextDimensions(bpmStr,  Graphics.FONT_XTINY))[0] as Number;
-        var batW    = (dc.getTextDimensions(batStr,  Graphics.FONT_XTINY))[0] as Number;
-        var totalW  = dateW + gap + heartW + 2 + bpmW + gap + batBarW + 4 + gap + batW;
-        var x       = cx - totalW / 2;
+        var dateW  = (dc.getTextDimensions(dateStr, Graphics.FONT_XTINY))[0] as Number;
+        var bpmW   = (dc.getTextDimensions(bpmStr,  Graphics.FONT_XTINY))[0] as Number;
+        var batStrW = (dc.getTextDimensions(batStr,  Graphics.FONT_XTINY))[0] as Number;
+        var totalW = dateW + gap + heartIconW + 2 + bpmW + gap + batBarW + 4 + gap + batStrW;
+        var x      = cx - totalW / 2;
 
         // Date
         dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
@@ -287,7 +308,7 @@ class FluxView extends WatchUi.WatchFace {
         // Heart icon + bpm
         var hIcon = (lg && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
         if (hIcon != null) { dc.drawBitmap(x, y + 1, hIcon as BitmapResource); }
-        x += heartW + 2;
+        x += heartIconW + 2;
         dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, Graphics.FONT_XTINY, bpmStr, Graphics.TEXT_JUSTIFY_LEFT);
         x += bpmW + gap;
@@ -305,65 +326,40 @@ class FluxView extends WatchUi.WatchFace {
             dc.fillRectangle(x + 1, batY + 1, fillW - 1, 6);
         }
         x += batBarW + 4 + gap;
-
-        // Battery %
         dc.setColor(batColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, Graphics.FONT_XTINY, batStr, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    //  SLOT PAIR (left + right, with divider)
+    //  SLEEP SCREEN (AOD)  — small Y above, time below center
     // ─────────────────────────────────────────────────────────────────────────
-    function drawSlotPair(dc as Dc, cx as Number, sw as Number, yTop as Number,
-                          lblOff as Number, slotL as Number, slotR as Number) as Void {
-        var dataL = getSlotData(slotL);
-        var dataR = getSlotData(slotR);
-        var margin = sw * 4 / 100;
-        var iconOff = sw * 20 / 100;
+    function drawSleepScreen(dc as Dc, w as Number, h as Number, cx as Number) as Void {
+        dc.setColor(C_BG, C_BG);
+        dc.clear();
 
-        // Divider line
-        dc.setColor(C_DIVIDER, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        dc.drawLine(cx, yTop - 2, cx, yTop + lblOff + 16);
+        var clockTime = System.getClockTime();
+        var timeStr   = buildTimeString(clockTime);
+        var yTime     = h * 58 / 100;
 
-        // Left slot (right-aligned to divider)
-        var lGoalColor = (dataL.size() > 2 && dataL[2] != null) ? dataL[2] as Number : -1;
-        var lColor     = (lGoalColor != -1) ? lGoalColor : C_PRIMARY;
-        dc.setColor(lColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - margin, yTop, Graphics.FONT_XTINY, dataL[0] as String, Graphics.TEXT_JUSTIFY_RIGHT);
-        var lLbl = dataL[1] as String;
-        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - margin, yTop + lblOff, Graphics.FONT_XTINY, lLbl, Graphics.TEXT_JUSTIFY_RIGHT);
-        // Strike-through label if goal reached
-        if (lGoalColor != -1 && !lLbl.equals("")) {
-            var d = dc.getTextDimensions(lLbl, Graphics.FONT_XTINY);
-            var ly = yTop + lblOff + (d[1] as Number) / 2;
-            dc.setPenWidth(1);
-            dc.drawLine(cx - margin - (d[0] as Number), ly, cx - margin, ly);
+        // Glow + time
+        dc.setColor(0x001133, Graphics.COLOR_TRANSPARENT);
+        for (var dx = -1; dx <= 1; dx++) {
+            for (var dy = -1; dy <= 1; dy++) {
+                if (dx == 0 && dy == 0) { continue; }
+                dc.drawText(cx + dx, yTime + dy, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+            }
         }
-        // Icon left of value
-        drawSlotIcon(dc, slotL, cx - iconOff, yTop + 2);
+        var aodFill = (mAodColor == 1) ? 0xFFFFFF : C_FLUX;
+        dc.setColor(aodFill, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Right slot (left-aligned from divider)
-        var rIconW    = drawSlotIcon(dc, slotR, cx + margin, yTop + 2);
-        var rGoalColor = (dataR.size() > 2 && dataR[2] != null) ? dataR[2] as Number : -1;
-        var rColor     = (rGoalColor != -1) ? rGoalColor : C_PRIMARY;
-        dc.setColor(rColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + margin + rIconW, yTop, Graphics.FONT_XTINY, dataR[0] as String, Graphics.TEXT_JUSTIFY_LEFT);
-        var rLbl = dataR[1] as String;
-        dc.setColor(C_LABEL, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + margin + rIconW, yTop + lblOff, Graphics.FONT_XTINY, rLbl, Graphics.TEXT_JUSTIFY_LEFT);
-        if (rGoalColor != -1 && !rLbl.equals("")) {
-            var d = dc.getTextDimensions(rLbl, Graphics.FONT_XTINY);
-            var ry = yTop + lblOff + (d[1] as Number) / 2;
-            dc.setPenWidth(1);
-            dc.drawLine(cx + margin + rIconW, ry, cx + margin + rIconW + (d[0] as Number), ry);
-        }
+        // Small Y above time
+        drawFluxCapacitor(dc, cx, h * 32 / 100, w * 10 / 100);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     //  SLOT DATA
-    //  Returns Array: [valueStr, labelStr] or [valueStr, labelStr, goalColor?]
+    //  Returns [valueStr, labelStr] or [valueStr, labelStr, goalColor]
     // ─────────────────────────────────────────────────────────────────────────
     function getSlotData(slot as Number) as Array {
         // 0 — Weather
@@ -417,19 +413,14 @@ class FluxView extends WatchUi.WatchFace {
         if (slot == 3) {
             var distStr = "--";
             if (act has :distance && act.distance != null) {
-                var cm = act.distance as Number;  // centimetres
+                var cm = act.distance as Number;
                 if (mDistUnit == 1) {
-                    // miles
-                    var mi = cm / 160934.0f;
-                    distStr = mi.format("%.2f");
+                    distStr = (cm / 160934.0f).format("%.2f");
                 } else {
-                    // km
-                    var km = cm / 100000.0f;
-                    distStr = km.format("%.2f");
+                    distStr = (cm / 100000.0f).format("%.2f");
                 }
             }
-            var unit = (mDistUnit == 1) ? "MI" : "KM";
-            return [distStr, unit] as Array;
+            return [distStr, (mDistUnit == 1) ? "MI" : "KM"] as Array;
         }
 
         // 4 — Active Minutes
@@ -469,58 +460,6 @@ class FluxView extends WatchUi.WatchFace {
         }
 
         return ["--", ""] as Array;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  SLOT ICON  — returns icon width so caller can offset text
-    // ─────────────────────────────────────────────────────────────────────────
-    function drawSlotIcon(dc as Dc, slot as Number, x as Number, y as Number) as Number {
-        var lg = (dc.getWidth() >= 390);
-        if (slot == 0 && mWeatherCondition >= 0) {
-            var wIcon = lg ? getWeatherIconLg(mWeatherCondition) : getWeatherIcon(mWeatherCondition);
-            if (wIcon == null) { wIcon = getWeatherIcon(mWeatherCondition); }
-            if (wIcon != null) {
-                dc.drawBitmap(x, y, wIcon as BitmapResource);
-                return lg ? 30 : 20;
-            }
-        } else if (slot == 2) {
-            var icon = (lg && mStepsIconLg != null) ? mStepsIconLg : mStepsIcon;
-            if (icon != null) {
-                dc.drawBitmap(x, y + 2, icon as BitmapResource);
-                return lg ? 24 : 16;
-            }
-        }
-        return 0;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  SLEEP SCREEN (AOD)
-    // ─────────────────────────────────────────────────────────────────────────
-    function drawSleepScreen(dc as Dc, w as Number, h as Number, cx as Number, cy as Number) as Void {
-        dc.setColor(C_BG, C_BG);
-        dc.clear();
-
-        var clockTime = System.getClockTime();
-        var timeStr   = buildTimeString(clockTime);
-        var yTime     = h * 35 / 100;
-
-        // Outline (1px offset, white)
-        dc.setColor(0x001133, Graphics.COLOR_TRANSPARENT);
-        for (var dx = -1; dx <= 1; dx++) {
-            for (var dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) { continue; }
-                dc.drawText(cx + dx, yTime + dy, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-            }
-        }
-
-        // Fill color
-        var aodFill = (mAodColor == 1) ? 0xFFFFFF : C_FLUX;
-        dc.setColor(aodFill, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Tiny flux capacitor in AOD
-        var yFlux = h * 65 / 100;
-        drawFluxCapacitor(dc, cx, yFlux, w * 6 / 100);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -574,8 +513,8 @@ class FluxView extends WatchUi.WatchFace {
 
     function weatherLabel(condition as Number) as String {
         if (condition == Weather.CONDITION_CLEAR)         { return "Clear"; }
-        if (condition == Weather.CONDITION_PARTLY_CLOUDY) { return "Partly Cloudy"; }
-        if (condition == Weather.CONDITION_CLOUDY)        { return "Cloudy"; }
+        if (condition == Weather.CONDITION_PARTLY_CLOUDY) { return "Cloudy"; }
+        if (condition == Weather.CONDITION_CLOUDY)        { return "Overcast"; }
         if (condition == Weather.CONDITION_RAIN)          { return "Rain"; }
         if (condition == Weather.CONDITION_SNOW)          { return "Snow"; }
         if (condition == Weather.CONDITION_FOG)           { return "Fog"; }
