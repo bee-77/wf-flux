@@ -100,9 +100,9 @@ class FluxView extends WatchUi.WatchFace {
         var clockTime = System.getClockTime();
         var timeStr   = buildTimeString(clockTime);
         var tinyH     = 12;
-        var timeH     = 40;
         try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
-        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_MILD))[1] as Number; } catch (ex) {}
+        // BttF 7-segment time height: digitW * 9/5
+        var bttfH = (w * 8 / 100) * 9 / 5;
 
         // ── Y-Logo geometry ──────────────────────────────────────────────────
         // Center of Y: 45% down (mehr Abstand oben), arm spans 23% of width
@@ -128,17 +128,12 @@ class FluxView extends WatchUi.WatchFace {
         // ── Flux Capacitor (Y) ───────────────────────────────────────────────
         drawFluxCapacitor(dc, cx, cyFlux, arm);
 
-        // ── Time — below the Y (kleiner: FONT_NUMBER_MILD) ───────────────────
+        // ── Time — BttF 7-segment style ──────────────────────────────────────
         var yTime = cyFlux + arm + h * 3 / 100;
-        dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(C_TIME, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        drawBttfTime(dc, cx, yTime, timeStr, w);
 
         // ── Wochentag + Datum unter der Uhrzeit ──────────────────────────────
-        var yDate    = yTime + timeH + 4;
+        var yDate    = yTime + bttfH + 4;
         var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var days     = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
         var dow      = 0;
@@ -147,7 +142,7 @@ class FluxView extends WatchUi.WatchFace {
         var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
         var ampmStr  = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? "  AM" : "  PM") : "";
         var fullDate = dayAbbr + "  " + dateStr + ampmStr;
-        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x334455, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, yDate, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
 
         // ── HR + Akku ────────────────────────────────────────────────────────
@@ -526,6 +521,97 @@ class FluxView extends WatchUi.WatchFace {
 
     function mathMax(a as Number, b as Number) as Number {
         return (a > b) ? a : b;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  BttF 7-SEGMENT TIME
+    // ─────────────────────────────────────────────────────────────────────────
+    function drawBttfTime(dc as Dc, cx as Number, y as Number,
+                          timeStr as String, w as Number) as Void {
+        var digitW = w * 8 / 100;
+        var digitH = digitW * 9 / 5;
+        var segT   = mathMax(2, digitW / 6);
+        var colonW = mathMax(segT * 2, digitW / 3);
+        var gap    = mathMax(1, digitW / 10);
+
+        var cOn  = 0xFF2200;
+        var cOff = 0x200000;
+
+        // Parse "H:MM" or "HH:MM"
+        var colonIdx = timeStr.find(":");
+        if (colonIdx == null) { return; }
+        var idx  = colonIdx as Number;
+        var hStr = timeStr.substring(0, idx) as String;
+        var mStr = timeStr.substring(idx + 1, timeStr.length()) as String;
+        if (hStr.length() < 2) { hStr = "0" + hStr; }
+        var digits = hStr + mStr;   // always 4 chars
+
+        var totalW = 4 * digitW + colonW + 5 * gap;
+        var xd     = cx - totalW / 2;
+
+        // Dark panel behind digits
+        var pad = segT * 2;
+        dc.setColor(0x080000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(xd - pad, y - pad, totalW + 2 * pad, digitH + 2 * pad);
+
+        // Four digits with colon in the middle
+        drawSegDigit(dc, digits.substring(0, 1) as String, xd, y, digitW, digitH, segT, cOn, cOff);
+        xd += digitW + gap;
+        drawSegDigit(dc, digits.substring(1, 2) as String, xd, y, digitW, digitH, segT, cOn, cOff);
+        xd += digitW + gap;
+        drawSegColon(dc, xd, y, colonW, digitH, segT, cOn);
+        xd += colonW + gap;
+        drawSegDigit(dc, digits.substring(2, 3) as String, xd, y, digitW, digitH, segT, cOn, cOff);
+        xd += digitW + gap;
+        drawSegDigit(dc, digits.substring(3, 4) as String, xd, y, digitW, digitH, segT, cOn, cOff);
+    }
+
+    // Draws a single 7-segment digit. ch = "0".."9"
+    // Segment bits: 0x01=top 0x02=top-right 0x04=bot-right 0x08=bottom
+    //               0x10=bot-left 0x20=top-left 0x40=middle
+    function drawSegDigit(dc as Dc, ch as String, x as Number, y as Number,
+                          dw as Number, dh as Number, st as Number,
+                          cOn as Number, cOff as Number) as Void {
+        var patterns = [0x77, 0x24, 0x5D, 0x6D, 0x2E,
+                        0x6B, 0x7B, 0x25, 0x7F, 0x6F] as Array<Number>;
+        var dv = ch.toNumber();
+        if (dv == null) { return; }
+        var d  = dv as Number;
+        if (d < 0 || d > 9) { return; }
+        var seg = patterns[d];
+        var hy  = dh / 2;
+
+        // top horizontal
+        dc.setColor(((seg & 0x01) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y, dw - 2 * st, st);
+        // top-right vertical
+        dc.setColor(((seg & 0x02) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + dw - st, y + st, st, hy - 2 * st);
+        // bottom-right vertical
+        dc.setColor(((seg & 0x04) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + dw - st, y + hy + st, st, hy - 2 * st);
+        // bottom horizontal
+        dc.setColor(((seg & 0x08) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y + dh - st, dw - 2 * st, st);
+        // bottom-left vertical
+        dc.setColor(((seg & 0x10) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, y + hy + st, st, hy - 2 * st);
+        // top-left vertical
+        dc.setColor(((seg & 0x20) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, y + st, st, hy - 2 * st);
+        // middle horizontal
+        dc.setColor(((seg & 0x40) != 0) ? cOn : cOff, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x + st, y + hy - st / 2, dw - 2 * st, st);
+    }
+
+    // Two square dots for the colon separator
+    function drawSegColon(dc as Dc, x as Number, y as Number,
+                          cw as Number, dh as Number, st as Number, cOn as Number) as Void {
+        var dotS = mathMax(2, st);
+        var dotX = x + cw / 2 - dotS / 2;
+        dc.setColor(cOn, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(dotX, y + dh / 4 - dotS / 2, dotS, dotS);
+        dc.fillRectangle(dotX, y + 3 * dh / 4 - dotS / 2, dotS, dotS);
     }
 
     function onEnterSleep() as Void { mSleeping = true;  WatchUi.requestUpdate(); }
