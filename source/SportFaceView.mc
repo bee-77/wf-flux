@@ -168,15 +168,14 @@ class FluxView extends WatchUi.WatchFace {
         var ampmStr  = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? "  AM" : "  PM") : "";
         var fullDate = dayAbbr + "  " + dateStr + ampmStr;
 
-        // Untere Zeilen von unten ankern
-        var yInfo   = h * 87 / 100;
+        // Direkt unterhalb der Uhrzeit verankern
         var boxPadX = w * 4 / 100;
         var boxPadY = 4;
         var boxW    = (dc.getTextDimensions(fullDate, Graphics.FONT_XTINY))[0] as Number + 2 * boxPadX;
         var boxH    = tinyH + 2 * boxPadY;
-        var yDate   = yInfo - boxH - 6;
         var boxX    = cx - boxW / 2;
-        var boxY    = yDate;
+        var boxY    = yTime + timeH + 4;
+        var yInfo   = boxY + boxH + 4;
 
         // 3D-Box: dunkle Füllung
         dc.setColor(0x060E18, Graphics.COLOR_TRANSPARENT);
