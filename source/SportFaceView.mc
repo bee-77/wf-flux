@@ -100,14 +100,14 @@ class FluxView extends WatchUi.WatchFace {
         var clockTime = System.getClockTime();
         var timeStr   = buildTimeString(clockTime);
         var tinyH     = 12;
-        var timeH     = 60;
+        var timeH     = 40;
         try { tinyH = (dc.getTextDimensions("M", Graphics.FONT_XTINY))[1] as Number; } catch (ex) {}
-        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_HOT))[1] as Number; } catch (ex) {}
+        try { timeH = (dc.getTextDimensions(timeStr, Graphics.FONT_NUMBER_MILD))[1] as Number; } catch (ex) {}
 
         // ── Y-Logo geometry ──────────────────────────────────────────────────
-        // Center of Y: 40% down, arm spans 23% of width
+        // Center of Y: 45% down (mehr Abstand oben), arm spans 23% of width
         var arm    = w * 23 / 100;
-        var cyFlux = h * 40 / 100;
+        var cyFlux = h * 45 / 100;
 
         // Tip positions (Garmin: 0°=up, x=cx+arm*sin, y=cy-arm*cos)
         var tipTopX = cx;
@@ -128,22 +128,30 @@ class FluxView extends WatchUi.WatchFace {
         // ── Flux Capacitor (Y) ───────────────────────────────────────────────
         drawFluxCapacitor(dc, cx, cyFlux, arm);
 
-        // ── Time — below the Y ───────────────────────────────────────────────
+        // ── Time — below the Y (kleiner: FONT_NUMBER_MILD) ───────────────────
         var yTime = cyFlux + arm + h * 3 / 100;
         dc.setColor(C_FLUX_DIM, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx + 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx - 1, yTime + 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx,     yTime - 1, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(C_TIME, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_HOT, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
-        if (mTimeStyle == 1) {
-            var ampm = (clockTime.hour < 12) ? "AM" : "PM";
-            dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, yTime + timeH + 2, Graphics.FONT_XTINY, ampm, Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        dc.drawText(cx, yTime, Graphics.FONT_NUMBER_MILD, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // ── Info strip: Date | HR | Battery ─────────────────────────────────
-        var yInfo = yTime + timeH + h * 2 / 100;
+        // ── Wochentag + Datum unter der Uhrzeit ──────────────────────────────
+        var yDate    = yTime + timeH + 4;
+        var now      = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var days     = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as Array<String>;
+        var dow      = 0;
+        try { dow = now.day_of_week as Number; } catch (ex) {}
+        var dayAbbr  = (dow >= 1 && dow <= 7) ? days[dow - 1] : "";
+        var dateStr  = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
+        var ampmStr  = (mTimeStyle == 1) ? ((clockTime.hour < 12) ? "  AM" : "  PM") : "";
+        var fullDate = dayAbbr + "  " + dateStr + ampmStr;
+        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, yDate, Graphics.FONT_XTINY, fullDate, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // ── HR + Akku ────────────────────────────────────────────────────────
+        var yInfo = yDate + tinyH + h * 1 / 100;
         drawInfoStrip(dc, cx, w, yInfo, tinyH, lg);
     }
 
@@ -271,11 +279,11 @@ class FluxView extends WatchUi.WatchFace {
     // ─────────────────────────────────────────────────────────────────────────
     //  INFO STRIP  (Date | HR | Battery) — compact, bottom of screen
     // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    //  INFO STRIP  (HR | Battery) — Datum ist separat oberhalb
+    // ─────────────────────────────────────────────────────────────────────────
     function drawInfoStrip(dc as Dc, cx as Number, w as Number, y as Number,
                            tinyH as Number, lg as Boolean) as Void {
-        var now     = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        var dateStr = now.day.format("%02d") + "." + now.month.format("%02d") + "." + (now.year % 100).format("%02d");
-
         var hrVal = "--";
         try {
             var hrInfo = Activity.getActivityInfo();
@@ -289,21 +297,15 @@ class FluxView extends WatchUi.WatchFace {
         try { batPct = System.getSystemStats().battery.toNumber(); } catch (ex) {}
 
         var heartIconW = lg ? 24 : 18;
-        var gap        = w * 2 / 100;
+        var gap        = w * 3 / 100;
         var batBarW    = w * 5 / 100;
         var bpmStr     = hrVal + " bpm";
         var batStr     = batPct.format("%d") + "%";
 
-        var dateW  = (dc.getTextDimensions(dateStr, Graphics.FONT_XTINY))[0] as Number;
-        var bpmW   = (dc.getTextDimensions(bpmStr,  Graphics.FONT_XTINY))[0] as Number;
+        var bpmW    = (dc.getTextDimensions(bpmStr, Graphics.FONT_XTINY))[0] as Number;
         var batStrW = (dc.getTextDimensions(batStr,  Graphics.FONT_XTINY))[0] as Number;
-        var totalW = dateW + gap + heartIconW + 2 + bpmW + gap + batBarW + 4 + gap + batStrW;
-        var x      = cx - totalW / 2;
-
-        // Date
-        dc.setColor(C_MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
-        x += dateW + gap;
+        var totalW  = heartIconW + 2 + bpmW + gap + batBarW + 4 + gap + batStrW;
+        var x       = cx - totalW / 2;
 
         // Heart icon + bpm
         var hIcon = (lg && mHeartIconLg != null) ? mHeartIconLg : mHeartIcon;
